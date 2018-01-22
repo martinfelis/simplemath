@@ -7,7 +7,7 @@
 
 namespace SimpleMath {
 
-template <typename Derived, typename ScalarType, int NumRows, int NumCols>
+template <typename Derived, typename ScalarType, int NumRows = -1, int NumCols = -1>
 struct Block;
 
 template <typename ScalarType, int NumRows, int NumCols>
@@ -31,9 +31,26 @@ struct MatrixBase {
 		
 		return result;
 	}
+
+	//
+	// operators with other matrices
+	//
+	template <typename OtherDerived>
+	void operator=(const OtherDerived& other) {
+		assert (cols() == other.cols());
+		assert (rows() == other.rows());
+
+		std::cout << "here!!" << std::endl;
+
+		for (int i = 0, nr = rows(); i < nr; ++i) {
+			for (int j = 0, nc = cols(); j < nc; ++j) {
+				operator()(i,j) = other(i,j);
+			}
+		}
+	}
 	
 	template <typename OtherDerived>
-	bool operator==(const OtherDerived& other) {
+	bool operator==(const OtherDerived& other) const {
 		unsigned int i,j;
 		for (i = 0; i < rows(); i++) {
 			for (j = 0; j < cols(); j++) {
@@ -53,7 +70,7 @@ struct MatrixBase {
 	}
 
 	template <typename OtherDerived>
-	Derived operator*(const OtherDerived& other) {
+	Derived operator*(const OtherDerived& other) const {
 		Derived result (Derived::Zero(rows(), other.cols()));
 
 		unsigned int i,j,k;
@@ -66,6 +83,23 @@ struct MatrixBase {
 		}
 		return result;
 	}
+
+	//
+	// operators with scalars
+	//
+	Derived operator*(const ScalarType& scalar) const {
+		Derived result (Derived::Zero(rows(), cols()));
+
+		unsigned int i,j;
+		for (i = 0; i < rows(); i++) {
+			for (j = 0; j < cols(); j++) {
+				result (i,j) = operator()(i,j) * scalar;
+			}
+		}
+		return result;
+	}
+
+
 
 	size_t rows() const {
 		return static_cast<const Derived*>(this)->rows();
@@ -104,6 +138,16 @@ struct MatrixBase {
 		return Block<Derived, ScalarType, block_rows, block_cols>(static_cast<Derived*>(this), block_row_index, block_col_index);
 	}
 
+	Block<
+		Derived,
+		ScalarType
+		> block(int block_row_index, int block_col_index,
+				int block_num_rows, int block_num_cols) {
+			assert(block_row_index + block_num_rows <= rows());
+			assert(block_col_index + block_num_cols <= cols());
+		return Block<Derived, ScalarType>(static_cast<Derived*>(this), block_row_index, block_col_index, block_num_rows, block_num_cols);
+	}
+
 	Transpose<Derived, ScalarType, Rows, Cols> transpose() {
 		return Transpose<Derived, ScalarType, Rows, Cols>(static_cast<Derived*>(this));
 	}
@@ -126,6 +170,11 @@ struct MatrixBase {
 		return result;
 	}
 };
+
+template <typename Derived, typename ScalarType, int Rows, int Cols>
+inline Derived operator*(const ScalarType& scalar, const MatrixBase<Derived, ScalarType, Rows, Cols> &matrix) {
+    return matrix * scalar;
+}
 
 template <typename Derived, typename ScalarType, int NumRows, int NumCols>
 struct Transpose : public MatrixBase<Transpose<Derived, ScalarType, NumRows, NumCols>, ScalarType, NumRows, NumCols> {
@@ -175,12 +224,26 @@ struct Block : public MatrixBase<Block<Derived, ScalarType, NumRows, NumCols>, S
 	Derived* mBlockSource;
 	int row_index;
 	int col_index;
+	int nrows;
+	int ncols;
 
 	Block(Derived* block_source, int row_index, int col_index) :
 		mBlockSource(block_source),
 		row_index(row_index),
-		col_index(col_index)
-	{ }
+		col_index(col_index),
+		nrows(NumRows), ncols(NumCols)
+	{ 
+		static_assert(NumRows != -1 && NumCols != -1);
+	}
+
+	Block(Derived* block_source, int row_index, int col_index, int num_rows, int num_cols) :
+		mBlockSource(block_source),
+		row_index(row_index),
+		col_index(col_index),
+		nrows (num_rows),
+		ncols (num_cols)
+	{ 
+	}
 
 	Block(const Block &other) :
 		mBlockSource(other.mBlockSource),
@@ -217,10 +280,10 @@ struct Block : public MatrixBase<Block<Derived, ScalarType, NumRows, NumCols>, S
 
 
 	size_t rows() const {
-		return NumRows;
+		return nrows;
 	}
 	size_t cols() const {
-		return NumCols;
+		return ncols;
 	}
 
 	const ScalarType& operator()(const size_t& i, const size_t& j) const {

@@ -5,6 +5,7 @@
 SET (UNITTEST++_FOUND FALSE)
 
 FIND_PATH (UNITTEST++_INCLUDE_DIR UnitTest++.h
+	/usr/include/UnitTest++ 
 	/usr/include/unittest++ 
 	/usr/local/include/unittest++ 
 	/opt/local/include/unittest++
