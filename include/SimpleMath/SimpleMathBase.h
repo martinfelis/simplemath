@@ -7,6 +7,9 @@
 
 namespace SimpleMath {
 
+template <typename Derived>
+struct CommaInitializer;
+
 template <typename Derived, typename ScalarType, int NumRows = -1, int NumCols = -1>
 struct Block;
 
@@ -18,6 +21,8 @@ struct Transpose;
 
 template <typename Derived, typename ScalarType, int Rows, int Cols>
 struct MatrixBase {
+	typedef ScalarType value_type;
+
 	template <typename OtherDerived>
 	Derived& operator=(const OtherDerived& other) {
 		Derived result (other.rows(), other.cols());
@@ -60,6 +65,10 @@ struct MatrixBase {
 		}
 		
 		return true;
+	}
+
+	CommaInitializer<Derived> operator<< (const value_type& value) {
+		return CommaInitializer<Derived> (*(static_cast<Derived*>(this)), value);
 	}
 	
 	template <typename OtherDerived>
@@ -175,6 +184,81 @@ template <typename Derived, typename ScalarType, int Rows, int Cols>
 inline Derived operator*(const ScalarType& scalar, const MatrixBase<Derived, ScalarType, Rows, Cols> &matrix) {
     return matrix * scalar;
 }
+
+//
+// CommaInitializer
+//
+template <typename Derived>
+struct CommaInitializer {
+	typedef typename Derived::value_type value_type;
+
+	private:
+		CommaInitializer() {}
+
+		Derived *mParentMatrix;
+		unsigned int mRowIndex;
+		unsigned int mColIndex;
+		bool mElementWasAdded;
+
+	public:
+
+	CommaInitializer(Derived &matrix, const value_type &value) : 
+		mParentMatrix(&matrix),
+		mRowIndex(0),
+		mColIndex(0),
+		mElementWasAdded(false)
+	{
+		assert (matrix.rows() > 0 && matrix.cols() > 0);
+		mParentMatrix->operator()(0,0) = value;
+	}
+
+	CommaInitializer(Derived &matrix, unsigned int row_index, unsigned int col_index) :
+		mParentMatrix(&matrix),
+		mRowIndex(row_index),
+		mColIndex(col_index),
+		mElementWasAdded(false)
+	{
+		assert (matrix.rows() > 0 && matrix.cols() > 0);
+	}
+
+	~CommaInitializer() {
+		if (!mElementWasAdded 
+				&& (mColIndex + 1 < mParentMatrix->cols()
+					|| mRowIndex + 1 < mParentMatrix->rows())) {
+			std::cerr 
+				<< "Error: too few elements passed to CommaInitializer Expected " 
+				<< mParentMatrix->rows() * mParentMatrix->cols()
+				<< " but was given " 
+				<< mRowIndex * mParentMatrix->cols() + mColIndex + 1 << std::endl;
+			abort();
+		}
+	}
+
+	CommaInitializer<Derived> operator, (const value_type &value) {
+		mColIndex++;
+		if (mColIndex >= mParentMatrix->cols()) {
+			mRowIndex++;
+			mColIndex = 0;
+		}
+
+		if (mRowIndex == mParentMatrix->rows() && mColIndex == 0) {
+			std::cerr 
+				<< "Error: too many elements passed to CommaInitializer!Expected " 
+				<< mParentMatrix->rows() * mParentMatrix->cols()
+				<< " but was given " 
+				<< mRowIndex *mParentMatrix->cols() + mColIndex + 1 << std::endl;
+			abort();
+		}
+		(*mParentMatrix)(mRowIndex, mColIndex) = value;
+		mElementWasAdded = true;
+
+		return CommaInitializer(*mParentMatrix, mRowIndex, mColIndex);
+	}
+};
+
+//
+// Transpose
+//
 
 template <typename Derived, typename ScalarType, int NumRows, int NumCols>
 struct Transpose : public MatrixBase<Transpose<Derived, ScalarType, NumRows, NumCols>, ScalarType, NumRows, NumCols> {

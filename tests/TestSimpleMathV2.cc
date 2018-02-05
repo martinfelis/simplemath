@@ -166,3 +166,32 @@ TEST (SimpleMatrixMultiplyScalar) {
 
 }
 
+TEST (SimpleMatrixCommaInitializer) {
+	Dynamic<double> mat_dynamic(3,3);
+
+	mat_dynamic(0,0) = 1.0; mat_dynamic(0,1) = 2.0; mat_dynamic(0,2) = 3.0;
+	mat_dynamic(1,0) = 4.0; mat_dynamic(1,1) = 5.0; mat_dynamic(1,2) = 6.0;
+	mat_dynamic(2,0) = 7.0; mat_dynamic(2,1) = 8.0; mat_dynamic(2,2) = 9.0;
+
+	Dynamic<double> mat_dynamic_comma_initializer(3,3);
+	
+	mat_dynamic_comma_initializer << 
+		1.0, 2.0, 3.0,
+		4.0, 5.0, 6.0,
+		7.0, 8.0, 9.0;
+
+	for (int i = 0, nr = mat_dynamic.rows(); i < nr; ++i)
+		for (int j = 0, nc = mat_dynamic.cols(); j < nc; ++j)
+			CHECK_EQUAL ((mat_dynamic(i,j)), (mat_dynamic_comma_initializer(i,j)));
+
+	Fixed<double, 3, 3> mat_fixed_comma_initializer;
+	mat_fixed_comma_initializer <<
+		1.0, 2.0, 3.0,
+		4.0, 5.0, 6.0,
+		7.0, 8.0, 9.0;
+
+	for (int i = 0, nr = mat_dynamic.rows(); i < nr; ++i)
+		for (int j = 0, nc = mat_dynamic.cols(); j < nc; ++j)
+			CHECK_EQUAL ((mat_dynamic(i,j)), (mat_fixed_comma_initializer(i,j)));
+}
+
