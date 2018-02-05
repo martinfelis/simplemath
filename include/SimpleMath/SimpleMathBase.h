@@ -233,7 +233,7 @@ struct Block : public MatrixBase<Block<Derived, ScalarType, NumRows, NumCols>, S
 		col_index(col_index),
 		nrows(NumRows), ncols(NumCols)
 	{ 
-		static_assert(NumRows != -1 && NumCols != -1);
+		static_assert(NumRows != -1 && NumCols != -1, "Invalid block specifications: unknown number of rows and columns!");
 	}
 
 	Block(Derived* block_source, int row_index, int col_index, int num_rows, int num_cols) :
