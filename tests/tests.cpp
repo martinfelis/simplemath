@@ -1,14 +1,38 @@
-#include <UnitTest++.h>
-
-#include "SimpleMath/SimpleMathBase.h"
+#define CATCH_CONFIG_MAIN
+#include "catch.hpp"
+#include "../include/SimpleMath/SimpleMath.h"
 
 #include <iostream>
-#include <vector>
 
 using namespace std;
 using namespace SimpleMath;
 
-TEST (SimpleMatrixAdd) {
+#define CHECK_ARRAY_CLOSE2 ( arr_a, arr_b, length, tol ) \
+	do { \
+		for (size_t array_check_i = 0; array_check_i < length; ++array_check_i) \
+			REQUIRE( fabs (arr_a[array_check_i] - arr_b[array_check_i]) == Approx (0).epsilon(tol) ) \
+	} while ( false )
+
+template <typename ScalarType>
+bool CHECK_ARRAY_CLOSE (const ScalarType* expected, const ScalarType* actual, size_t length, ScalarType tol) {
+	for (size_t i = 0; i < length; ++i) {
+		REQUIRE ( fabs(expected[i] - actual[i]) == Approx(0.0).epsilon(tol));
+	}
+
+	return true;
+}
+
+TEST_CASE ("Basic SimpleMath works", "[SimpleMath]") {
+	Matrix33f bla (Matrix33f::Identity());
+
+	Vector3f x (1.0f, 2.0f, 3.0f);
+
+	bla.block<3,1>(0,0) = x * (1.0 / 10.0f);
+	
+	cout << bla << endl;
+}
+
+TEST_CASE ("SimpleMatrixAdd", "[SimpleMath]") {
 	Fixed<double, 3, 3> mat1;
 	Dynamic<double> mat2(3,3);
 
@@ -27,14 +51,14 @@ TEST (SimpleMatrixAdd) {
 	CHECK_ARRAY_CLOSE(array_result, sum_dynamic_result.data(), 9, 1.0e-12);
 }
 
-TEST (SimpleMatrixValuesConstructor ) {
+TEST_CASE ("SimpleMatrixValuesConstructor", "[SimpleMath]" ) {
 	Fixed<double, 4, 1> vector (1.0, 2.0, 3.0, 4.0);
 
 	double array_result[] = { 1.0, 2.0, 3.0, 4.0 };
 	CHECK_ARRAY_CLOSE (array_result, vector.data(), 4, 1.0e-12);
 }
 
-TEST (SimpleMatrixMul) {
+TEST_CASE ("SimpleMatrixMul", "[SimpleMath]") {
 	Fixed<double, 3, 3> mat1;
 	Dynamic<double> mat2(3,3);
 
@@ -53,7 +77,7 @@ TEST (SimpleMatrixMul) {
 	CHECK_ARRAY_CLOSE(array_result, sum_dynamic_result.data(), 9, 1.0e-12);
 }
 
-TEST (SimpleMatrixBlock) {
+TEST_CASE ("SimpleMatrixBlock", "[SimpleMath]") {
 	Fixed<double, 6, 6> mat_fixed;
 	Dynamic<double> mat_dynamic(6,6);
 
@@ -84,7 +108,7 @@ TEST (SimpleMatrixBlock) {
 	cout << mat_dynamic.block<2,2>(1,1) + mat_fixed.block<2,2>(1,1) << endl;
 }
 
-TEST (SimpleMatrixTranspose) {
+TEST_CASE ("SimpleMatrixTranspose", "[SimpleMath]") {
 	Fixed<double, 6, 6> mat_fixed;
 	Dynamic<double> mat_dynamic(6,6);
 
@@ -97,7 +121,7 @@ TEST (SimpleMatrixTranspose) {
     CHECK(mat_fixed.transpose().transpose() == mat_fixed);
 }
 
-TEST (SimpleMatrixAssignment) {
+TEST_CASE ("SimpleMatrixAssignment", "[SimpleMath]") {
 	Fixed<double, 6, 6> mat_fixed;
 	Dynamic<double> mat_dynamic(3,3);
 
@@ -112,11 +136,10 @@ TEST (SimpleMatrixAssignment) {
 	mat_dynamic(2,0) = 7.0; mat_dynamic(2,1) = 8.0; mat_dynamic(2,2) = 9.0;
 
 	mat_fixed.block<3,3>(3,3).transpose().transpose() = mat_dynamic;
-	CHECK (	(mat_fixed.block<3,3>(3,3).transpose().transpose()) == mat_dynamic);
-	CHECK_EQUAL (	(mat_fixed.block<3,3>(3,3).transpose().transpose()),  mat_dynamic);
+	REQUIRE (	(mat_fixed.block<3,3>(3,3).transpose().transpose()) == mat_dynamic);
 }
 
-TEST (SimpleMatrixBlockComparison) {
+TEST_CASE ("SimpleMatrixBlockComparison", "[SimpleMath]") {
 	Fixed<double, 6, 6> mat_fixed;
 	Dynamic<double> mat_dynamic(3,3);
 
@@ -132,36 +155,34 @@ TEST (SimpleMatrixBlockComparison) {
 
 	// Blocks using block<nrows,ncols>(row,col) construction
 	mat_fixed.block<3,3>(3,3).transpose().transpose() = mat_dynamic;
-	CHECK (	(mat_fixed.block<3,3>(3,3).transpose().transpose()) == mat_dynamic);
-	CHECK_EQUAL (	(mat_fixed.block<3,3>(3,3).transpose().transpose()),  mat_dynamic);
+	REQUIRE (	(mat_fixed.block<3,3>(3,3).transpose().transpose()) == mat_dynamic);
 
 	// Blocks using block(row,col,nrows,ncols)
 	mat_fixed.block(3,3,3,3).transpose().transpose() = mat_dynamic;
-	CHECK (	(mat_fixed.block(3,3,3,3).transpose().transpose()) == mat_dynamic);
-	CHECK_EQUAL (	(mat_fixed.block(3,3,3,3).transpose().transpose()),  mat_dynamic);
+	REQUIRE (	(mat_fixed.block(3,3,3,3).transpose().transpose()) == mat_dynamic);
 }
 
-TEST (SimpleMatrixMultiplyScalar) {
+TEST_CASE ("SimpleMatrixMultiplyScalar", "[SimpleMath]") {
 	Dynamic<double> mat_dynamic(3,3);
-    Fixed<double,3,3> mat_fixed(3,3);
+  Fixed<double,3,3> mat_fixed;
 
 	mat_dynamic(0,0) = 1.0; mat_dynamic(0,1) = 2.0; mat_dynamic(0,2) = 3.0;
 	mat_dynamic(1,0) = 4.0; mat_dynamic(1,1) = 5.0; mat_dynamic(1,2) = 6.0;
 	mat_dynamic(2,0) = 7.0; mat_dynamic(2,1) = 8.0; mat_dynamic(2,2) = 9.0;
 
-    mat_fixed = mat_dynamic;
+  mat_fixed = mat_dynamic;
 
 	Dynamic<double> mult = mat_dynamic * 3.;
 
 	for (int i = 0, nr = mat_dynamic.rows(); i < nr; ++i)
 		for (int j = 0, nc = mat_dynamic.cols(); j < nc; ++j)
-			CHECK_EQUAL ((mult(i,j)), (mat_dynamic(i,j) * 3.0));
+			REQUIRE ((mult(i,j)) == (mat_dynamic(i,j) * 3.0));
 
 	mult = 2.0 * mat_dynamic;
 
 	for (int i = 0, nr = mat_dynamic.rows(); i < nr; ++i) {
 		for (int j = 0, nc = mat_dynamic.cols(); j < nc; ++j) {
-			CHECK_EQUAL ((mult(i,j)), (mat_dynamic(i,j) * 2.0));
+			REQUIRE ((mult(i,j)) == (mat_dynamic(i,j) * 2.0));
         }
     }
 
@@ -169,11 +190,11 @@ TEST (SimpleMatrixMultiplyScalar) {
     Fixed<double,3,3> mult_fixed = mat_fixed * 3.;
     for (int i = 0, nr = mat_dynamic.rows(); i < nr; ++i)
         for (int j = 0, nc = mat_dynamic.cols(); j < nc; ++j)
-                    CHECK_EQUAL ((mult_fixed(i,j)), (mat_dynamic(i,j) * 3.0));
+                    REQUIRE ((mult_fixed(i,j)) == (mat_dynamic(i,j) * 3.0));
 
 }
 
-TEST (SimpleMatrixCommaInitializer) {
+TEST_CASE ("SimpleMatrixCommaInitializer", "[SimpleMath]") {
 	Dynamic<double> mat_dynamic(3,3);
 
 	mat_dynamic(0,0) = 1.0; mat_dynamic(0,1) = 2.0; mat_dynamic(0,2) = 3.0;
@@ -189,7 +210,7 @@ TEST (SimpleMatrixCommaInitializer) {
 
 	for (int i = 0, nr = mat_dynamic.rows(); i < nr; ++i)
 		for (int j = 0, nc = mat_dynamic.cols(); j < nc; ++j)
-			CHECK_EQUAL ((mat_dynamic(i,j)), (mat_dynamic_comma_initializer(i,j)));
+			REQUIRE ((mat_dynamic(i,j)) == (mat_dynamic_comma_initializer(i,j)));
 
 	Fixed<double, 3, 3> mat_fixed_comma_initializer;
 	mat_fixed_comma_initializer <<
@@ -199,6 +220,7 @@ TEST (SimpleMatrixCommaInitializer) {
 
 	for (int i = 0, nr = mat_dynamic.rows(); i < nr; ++i)
 		for (int j = 0, nc = mat_dynamic.cols(); j < nc; ++j)
-			CHECK_EQUAL ((mat_dynamic(i,j)), (mat_fixed_comma_initializer(i,j)));
+			REQUIRE ((mat_dynamic(i,j)) == (mat_fixed_comma_initializer(i,j)));
 }
+
 
