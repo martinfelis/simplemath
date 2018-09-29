@@ -43,6 +43,19 @@ struct MatrixBase {
     typedef MatrixBase<Derived, ScalarType, Rows, Cols> MatrixType;
 	typedef ScalarType value_type;
 	
+	template <typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
+	Derived& operator=(const MatrixBase<OtherDerived, OtherScalarType, OtherRows, OtherCols>& other) {
+		if (static_cast<const void*>(this) != static_cast<const void*>(&other)) {
+			for (size_t i = 0; i < other.rows(); i++) {
+				for (size_t j = 0; j < other.cols(); j++) {
+					this->operator()(i,j) = other(i,j);
+				}
+			}
+		}
+
+		return *this;
+	}
+
 	//
 	// operators with scalars
 	//
@@ -661,21 +674,6 @@ struct Fixed : public MatrixBase<Fixed<val_type, NumRows, NumCols>, val_type, Nu
 				this->operator()(i,j) = other(i,j);
 			}
 		}
-	}
-
-	template <typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
-	Fixed& operator=(const MatrixBase<OtherDerived, OtherScalarType, OtherRows, OtherCols>& other) {
-		if (static_cast<const void*>(this) != static_cast<const void*>(&other)) {
-			std::cout << "Fixed AO" << std::endl;
-
-			for (size_t i = 0; i < other.rows(); i++) {
-				for (size_t j = 0; j < other.cols(); j++) {
-					this->operator()(i,j) = other(i,j);
-				}
-			}
-		}
-
-		return *this;
 	}
 
 	explicit Fixed (size_t rows, size_t cols) {
