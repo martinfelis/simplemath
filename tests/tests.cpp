@@ -1,4 +1,3 @@
-#define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 #include "../include/SimpleMath/SimpleMath.h"
 
@@ -223,4 +222,24 @@ TEST_CASE ("SimpleMatrixCommaInitializer", "[SimpleMath]") {
 			REQUIRE ((mat_dynamic(i,j)) == (mat_fixed_comma_initializer(i,j)));
 }
 
+TEST_CASE ("SimpleMathConstTranspose", "[SimpleMath]") {
+	Dynamic<double> mat_dynamic(3,3);
 
+	mat_dynamic(0,0) = 1.0; mat_dynamic(0,1) = 2.0; mat_dynamic(0,2) = 3.0;
+	mat_dynamic(1,0) = 4.0; mat_dynamic(1,1) = 5.0; mat_dynamic(1,2) = 6.0;
+	mat_dynamic(2,0) = 7.0; mat_dynamic(2,1) = 8.0; mat_dynamic(2,2) = 9.0;
+
+	const Block<Dynamic<double>, double, 3, 1> const_block(&mat_dynamic, 0, 0);
+
+	Fixed<double, 3, 1> vec1;
+	vec1 = const_block;
+	Dynamic<double> res1;
+
+	cout << "Result:" << endl;
+	res1 = vec1.transpose() * vec1;
+	cout << res1 << endl;
+	cout << vec1.transpose() * vec1 << endl;
+	cout << const_block.transpose() * const_block << endl;
+	float result = const_block.transpose() * const_block;
+	cout << result << endl;
+}

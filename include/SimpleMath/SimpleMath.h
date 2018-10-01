@@ -18,7 +18,7 @@ struct CommaInitializer;
 template <typename ScalarType, int NumRows, int NumCols>
 struct Fixed;
 
-template <typename ScalarType, int NumRows, int NumCols>
+template <typename ScalarType>
 struct Dynamic;
 
 template <typename Derived, typename ScalarType, int NumRows = -1, int NumCols = -1>
@@ -126,7 +126,7 @@ struct MatrixBase {
 
   template <typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
 	Derived operator*(const MatrixBase<OtherDerived, OtherScalarType, OtherRows, OtherCols>& other) const {
-		Dynamic<ScalarType, -1, -1> result (rows(), other.cols());
+		Derived result (rows(), other.cols());
 
 		unsigned int i,j,k;
 		for (i = 0; i < rows(); i++) {
@@ -153,11 +153,11 @@ struct MatrixBase {
 			}
 		}
 
-  		return *this;
+  	return *this;
 	}
 
 	void set(const ScalarType& v0) {
-		static_assert(cols() * rows() == 1);
+		static_assert(cols() * rows() == 1, "Invalid matrix size");
 		data()[0] = v0;
 	}
 
@@ -202,12 +202,18 @@ struct MatrixBase {
 	}
 
 	const ScalarType& operator[](const size_t& i) const {
-		static_assert(Cols == 1);
+		static_assert(Cols == 1, "Invalid matrix size");
 		return static_cast<const Derived*>(this)->operator()(i,0);
 	}
 	ScalarType& operator[](const size_t& i) {
-		static_assert(Cols == 1);
+		static_assert(Cols == 1, "Invalid matrix size");
 		return static_cast<Derived*>(this)->operator()(i,0);
+	}
+
+	operator ScalarType() const {
+		assert ( static_cast<const Derived*>(this)->cols() == 1
+				&& static_cast<const Derived*>(this)->rows() == 1);
+		return static_cast<const Derived*>(this)->operator()(0,0);
 	}
 
 	//
@@ -516,15 +522,31 @@ struct Transpose : public MatrixBase<Transpose<Derived, ScalarType, NumRows, Num
 		mTransposeSource(other.mTransposeSource)
 	{ }
 
-	template <typename OtherDerived>
-	Transpose& operator=(const OtherDerived& other) {
-		unsigned int i,j;
+  template <typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
+	Dynamic<ScalarType> operator*(const MatrixBase<OtherDerived, OtherScalarType, OtherRows, OtherCols>& other) const {
+		Dynamic<ScalarType> result (rows(), other.cols());
+
+		unsigned int i,j,k;
 		for (i = 0; i < rows(); i++) {
-			for (j = 0; j < cols(); j++) {
-				this->operator()(i,j) = other(i,j);
+			for (j = 0; j < other.cols(); j++) {
+				for (k = 0; k < other.rows(); k++) {
+					result (i,j) += operator()(i,k) * other(k,j);
+				}
 			}
 		}
-		
+		return result;
+	}
+
+	template <typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
+	Transpose& operator=(const MatrixBase<OtherDerived, OtherScalarType, OtherRows, OtherCols>& other) {
+		if (static_cast<const void*>(this) != static_cast<const void*>(&other)) {
+			for (size_t i = 0; i < other.rows(); i++) {
+				for (size_t j = 0; j < other.cols(); j++) {
+					this->operator()(i,j) = other(i,j);
+				}
+			}
+		}
+
 		return *this;
 	}
 
@@ -593,8 +615,8 @@ struct Block : public MatrixBase<Block<Derived, ScalarType, NumRows, NumCols>, S
 	}
 	
 	template <typename OtherDerived>
-	Dynamic<ScalarType, -1, -1> operator*(const OtherDerived& other) {
-		Dynamic<ScalarType, -1, -1> result (Dynamic<ScalarType, -1, -1>::Zero(rows(), other.cols()));
+	Dynamic<ScalarType> operator*(const OtherDerived& other) {
+		Dynamic<ScalarType> result (Dynamic<ScalarType>::Zero(rows(), other.cols()));
 
 		unsigned int i,j,k;
 		for (i = 0; i < rows(); i++) {
@@ -623,8 +645,8 @@ struct Block : public MatrixBase<Block<Derived, ScalarType, NumRows, NumCols>, S
 	}
 
 	template <typename OtherDerived>
-	Dynamic<ScalarType, -1, -1> operator+(const OtherDerived& other) {
-		Dynamic<ScalarType, -1, -1> result (*this);
+	Dynamic<ScalarType> operator+(const OtherDerived& other) {
+		Dynamic<ScalarType> result (*this);
 		result += other;
 		return result;
 	}
@@ -689,7 +711,7 @@ struct Fixed : public MatrixBase<Fixed<val_type, NumRows, NumCols>, val_type, Nu
 	Fixed (
 			const val_type& v0
 			) {
-		static_assert (NumRows * NumCols == 1);
+		static_assert (NumRows * NumCols == 1, "Invalid matrix size");
 
 		mData[0] = v0;
 	}
@@ -698,7 +720,7 @@ struct Fixed : public MatrixBase<Fixed<val_type, NumRows, NumCols>, val_type, Nu
 			const val_type& v0,
 			const val_type& v1
 			) {
-		static_assert (NumRows * NumCols == 2);
+		static_assert (NumRows * NumCols == 2, "Invalid matrix size");
 
 		mData[0] = v0;
 		mData[1] = v1;
@@ -709,7 +731,7 @@ struct Fixed : public MatrixBase<Fixed<val_type, NumRows, NumCols>, val_type, Nu
 			const val_type& v1,
 			const val_type& v2
 			) {
-		static_assert (NumRows * NumCols == 3);
+		static_assert (NumRows * NumCols == 3, "Invalid matrix size");
 
 		mData[0] = v0;
 		mData[1] = v1;
@@ -722,7 +744,7 @@ struct Fixed : public MatrixBase<Fixed<val_type, NumRows, NumCols>, val_type, Nu
 			const val_type& v2,
 			const val_type& v3
 			) {
-		static_assert (NumRows * NumCols == 4);
+		static_assert (NumRows * NumCols == 4, "Invalid matrix size");
 
 		mData[0] = v0;
 		mData[1] = v1;
@@ -744,7 +766,7 @@ struct Fixed : public MatrixBase<Fixed<val_type, NumRows, NumCols>, val_type, Nu
 			const val_type& v21,
 			const val_type& v22
 			) {
-		static_assert (NumRows == 3 && NumCols == 3);
+		static_assert (NumRows == 3 && NumCols == 3, "Invalid matrix size");
 
 		operator()(0,0) = v00;
 		operator()(0,1) = v01;
@@ -777,7 +799,7 @@ struct Fixed : public MatrixBase<Fixed<val_type, NumRows, NumCols>, val_type, Nu
 			const val_type& v32,
 			const val_type& v33
 			) {
-		static_assert (NumRows == 4 && NumCols == 4);
+		static_assert (NumRows == 4 && NumCols == 4, "Invalid matrix size");
 
 		operator()(0,0) = v00;
 		operator()(0,1) = v01;
@@ -854,8 +876,8 @@ struct Fixed : public MatrixBase<Fixed<val_type, NumRows, NumCols>, val_type, Nu
 //
 // Dynamic Matrices
 //
-template <typename ScalarType, int Rows = -1, int Cols = -1>
-struct Dynamic : public MatrixBase<Dynamic<ScalarType, -1, -1>, ScalarType, -1, -1> {
+template <typename ScalarType>
+struct Dynamic : public MatrixBase<Dynamic<ScalarType>, ScalarType, -1, -1> {
 	typedef Dynamic<ScalarType> matrix_type;
 
 	ScalarType* mData;
@@ -909,8 +931,10 @@ struct Dynamic : public MatrixBase<Dynamic<ScalarType, -1, -1>, ScalarType, -1, 
 
 	Dynamic& operator=(const Dynamic &other) {
 		if (static_cast<const void*>(this) != static_cast<const void*>(&other)) {
-			assert (mData != NULL);
-			delete[] mData;
+			if (mData != NULL) {
+				assert (mData != NULL);
+				delete[] mData;
+			}
 
 			mNumRows = other.rows();
 			mNumCols = other.cols();
