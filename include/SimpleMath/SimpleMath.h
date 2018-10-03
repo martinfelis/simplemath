@@ -454,11 +454,18 @@ struct Storage {
         std::cout << "Fixed sized storage" << std::endl;
     }
 
+		Storage(int rows, int cols) {
+			std::cout << "Fixed sized storage resize with size " << rows << ", " << cols << std::endl;
+			resize(rows, cols);
+		}
+
     size_t rows() const { return NumRows; }
 
     size_t cols() const { return NumCols; }
 
-    void resize(int num_rows, int num_cols) {}
+    void resize(int num_rows, int num_cols) {
+			assert (num_rows == NumRows && num_cols == NumCols);
+		}
 
     ScalarType& coeff(int row_index, int col_index) {
         assert (row_index >= 0 && row_index <= NumRows);
@@ -467,7 +474,9 @@ struct Storage {
     }
 
     const ScalarType& coeff(int row_index, int col_index) const {
-        return coeff(row_index, col_index);
+        assert (row_index >= 0 && row_index <= NumRows);
+        assert (col_index >= 0 && col_index <= NumCols);
+        return mData[row_index * NumCols + col_index];
     }
 };
 
@@ -481,9 +490,10 @@ struct Storage<ScalarType, 0, DynamicSize, DynamicSize> {
        std::cout << "Dynamic sized storage" << std::endl;
    }
 
-   Storage(int rows, int cols) {
-       resize(rows, cols);
-   }
+	 Storage(int rows, int cols) {
+		 std::cout << "Dynamic sized storage resize with size " << rows << ", " << cols << std::endl;
+		 resize(rows, cols);
+	 }
 
    size_t rows() const { return mRows; }
    size_t cols() const { return mCols; }
@@ -525,7 +535,12 @@ struct Matrix : public MatrixBase<Dynamic<ScalarType>, ScalarType, -1, -1>{
 
     Storage<ScalarType, SizeAtCompileTime, NumRows, NumCols> mStorage;
 
-	Matrix() {
+	Matrix() :
+		mStorage (
+				NumRows == DynamicSize ? 0 : NumRows,
+				NumCols == DynamicSize ? 0 : NumCols
+				)
+	{
 	}
 
     Matrix(int rows, int cols) :
@@ -553,6 +568,20 @@ struct Matrix : public MatrixBase<Dynamic<ScalarType>, ScalarType, -1, -1>{
 	explicit Matrix (size_t rows, size_t cols) {
 		assert (rows == NumRows);
 		assert (cols == cols);
+	}
+
+	template <typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
+	Matrix& operator=(const MatrixBase<OtherDerived, OtherScalarType, OtherRows, OtherCols>& other) {
+		std::cout << "Assignmentd other "  << other.rows() << ", " << other.cols() << std::endl;
+		if (static_cast<const void*>(this) != static_cast<const void*>(&other)) {
+			for (size_t i = 0; i < other.rows(); i++) {
+				for (size_t j = 0; j < other.cols(); j++) {
+					this->operator()(i,j) = other(i,j);
+				}
+			}
+		}
+
+		return *this;
 	}
 
 	template <typename OtherDerived>

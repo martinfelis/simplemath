@@ -260,12 +260,15 @@ TEST_CASE ("SimpleMathUnifiedFixedDynamic", "[SimpleMath]") {
 			4.0, 5.0, 6.0,
 			7.0, 8.0, 9.0;
 
+	dynamic_mat33(2, 2) = 1000.0;
+
 	fixed_mat33 = dynamic_mat33;
 
+	cout << fixed_mat33(1,1) << endl;
 	cout << "matrix " << sizeof(Matrix<double, 3, 3>) << endl;
 
-	cout << fixed_mat33 << endl;
-	cout << dynamic_mat33 << endl;
+	cout << "fixed: " << fixed_mat33 << " size: " << fixed_mat33.rows() << ", " << fixed_mat33.cols() << endl;
+	cout << "dyn:" << dynamic_mat33 << endl;
 
 	cout << dynamic_mat33(0, 0) << ", " << dynamic_mat33(0, 1) << ", " << dynamic_mat33(0, 2) << endl
 			<< dynamic_mat33(1, 0) << ", " << dynamic_mat33(1, 1) << ", " << dynamic_mat33(1, 2) << endl
