@@ -249,3 +249,28 @@ TEST_CASE ("SimpleMathConstTranspose", "[SimpleMath]") {
 	float result = const_block.transpose() * const_block;
 	cout << result << endl;
 }
+
+
+TEST_CASE ("SimpleMathUnifiedFixedDynamic", "[SimpleMath]") {
+	Matrix<double, 3, 3>  fixed_mat33;
+	Matrix<float> dynamic_mat33 (3, 3);
+
+	dynamic_mat33 <<
+			1.0, 2.0, 3.0,
+			4.0, 5.0, 6.0,
+			7.0, 8.0, 9.0;
+
+	fixed_mat33 = dynamic_mat33;
+
+	cout << "matrix " << sizeof(Matrix<double, 3, 3>) << endl;
+
+	cout << fixed_mat33 << endl;
+	cout << dynamic_mat33 << endl;
+
+	cout << dynamic_mat33(0, 0) << ", " << dynamic_mat33(0, 1) << ", " << dynamic_mat33(0, 2) << endl
+			<< dynamic_mat33(1, 0) << ", " << dynamic_mat33(1, 1) << ", " << dynamic_mat33(1, 2) << endl
+			<< dynamic_mat33(2, 0) << ", " << dynamic_mat33(2, 1) << ", " << dynamic_mat33(2, 2) << endl;
+
+	cout << sizeof(Matrix<float, 1, 1>) << endl;
+    cout << sizeof(Matrix<float>) << endl;
+}

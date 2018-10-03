@@ -442,14 +442,79 @@ inline Derived operator/(const MatrixBase<Derived, ScalarType, Rows, Cols> &matr
     return matrix * (1.0 / scalar);
 }
 
-template <typename ScalarType, int NumRows, int NumCols>
+template <typename ScalarType, int SizeAtCompileTime, int NumRows, int NumCols>
+struct Storage;
+
+// fixed storage
+template <typename ScalarType, int SizeAtCompileTime, int NumRows, int NumCols>
 struct Storage {
-	static int 
+    ScalarType mData[SizeAtCompileTime];
+
+    Storage() {
+        std::cout << "Fixed sized storage" << std::endl;
+    }
+
+    size_t rows() const { return NumRows; }
+
+    size_t cols() const { return NumCols; }
+
+    void resize(int num_rows, int num_cols) {}
+
+    ScalarType& coeff(int row_index, int col_index) {
+        assert (row_index >= 0 && row_index <= NumRows);
+        assert (col_index >= 0 && col_index <= NumCols);
+        return mData[row_index * NumCols + col_index];
+    }
+
+    const ScalarType& coeff(int row_index, int col_index) const {
+        return coeff(row_index, col_index);
+    }
 };
 
-template <typename Derived, typename ScalarType, int NumRows, int NumCols>
-struct Matrix {
-  typedef MatrixBase<Derived, ScalarType, NumRows, NumCols> MatrixType;
+template <typename ScalarType>
+struct Storage<ScalarType, 0, DynamicSize, DynamicSize> {
+   ScalarType* mData = nullptr;
+   int mRows = 0;
+   int mCols = 0;
+
+   Storage() {
+       std::cout << "Dynamic sized storage" << std::endl;
+   }
+
+   Storage(int rows, int cols) {
+       resize(rows, cols);
+   }
+
+   size_t rows() const { return mRows; }
+   size_t cols() const { return mCols; }
+
+   void resize(int num_rows, int num_cols) {
+        if (mRows != num_rows || mCols != num_cols) {
+            if (mData != nullptr) {
+                delete[] mData;
+            }
+
+            mData = new ScalarType[num_rows * num_cols];
+            mRows = num_rows;
+            mCols = num_cols;
+        }
+   }
+
+    ScalarType& coeff(int row_index, int col_index) {
+        assert (row_index >= 0 && row_index <= mRows);
+        assert (col_index >= 0 && col_index <= mCols);
+        return mData[row_index * mCols + col_index];
+    }
+    const ScalarType& coeff(int row_index, int col_index) const {
+        assert (row_index >= 0 && row_index <= mRows);
+        assert (col_index >= 0 && col_index <= mCols);
+        return mData[row_index * mCols + col_index];
+    }
+};
+
+
+template <typename ScalarType, int NumRows = DynamicSize, int NumCols = DynamicSize>
+struct Matrix : public MatrixBase<Dynamic<ScalarType>, ScalarType, -1, -1>{
 	typedef ScalarType value_type;
 
 	enum {
@@ -458,15 +523,20 @@ struct Matrix {
 		SizeAtCompileTime = (NumRows != DynamicSize && NumCols != DynamicSize) ? NumRows * NumCols : 0
 	};
 
-	ScalarType mData[SizeAtCompileTime];
+    Storage<ScalarType, SizeAtCompileTime, NumRows, NumCols> mStorage;
 
 	Matrix() {
 	}
 
-	Matrix (const Matrix &other) {
+    Matrix(int rows, int cols) :
+        mStorage(rows, cols) {}
+
+/*
+   Matrix (const Matrix &other) {
 		assert (NumRows == other.rows() && NumCols == other.cols() && "Error: matrix dimensions do not match!");
 		memcpy (mData, other.data(), sizeof (ScalarType) * rows() * cols());
 	}
+ */
 
 	template <typename OtherDerived>
 	Matrix(const OtherDerived &other) {
@@ -484,127 +554,6 @@ struct Matrix {
 		assert (rows == NumRows);
 		assert (cols == cols);
 	}
-
-
-	//
-	// Constructor for vectors
-	//
-
-	Matrix (
-			const ScalarType& v0
-			) {
-		static_assert (NumRows * NumCols == 1, "Invalid matrix size");
-
-		mData[0] = v0;
-	}
-
-	Matrix (
-			const ScalarType& v0,
-			const ScalarType& v1
-			) {
-		static_assert (NumRows * NumCols == 2, "Invalid matrix size");
-
-		mData[0] = v0;
-		mData[1] = v1;
-	}
-
-	Matrix (
-			const ScalarType& v0,
-			const ScalarType& v1,
-			const ScalarType& v2
-			) {
-		static_assert (NumRows * NumCols == 3, "Invalid matrix size");
-
-		mData[0] = v0;
-		mData[1] = v1;
-		mData[2] = v2;
-	}
-
-	Matrix (
-			const ScalarType& v0,
-			const ScalarType& v1,
-			const ScalarType& v2,
-			const ScalarType& v3
-			) {
-		static_assert (NumRows * NumCols == 4, "Invalid matrix size");
-
-		mData[0] = v0;
-		mData[1] = v1;
-		mData[2] = v2;
-		mData[3] = v3;
-	}
-
-	//
-	// Constructor for matrices
-	//
-	Matrix (
-			const ScalarType& v00,
-			const ScalarType& v01,
-			const ScalarType& v02,
-			const ScalarType& v10,
-			const ScalarType& v11,
-			const ScalarType& v12,
-			const ScalarType& v20,
-			const ScalarType& v21,
-			const ScalarType& v22
-			) {
-		static_assert (NumRows == 3 && NumCols == 3, "Invalid matrix size");
-
-		operator()(0,0) = v00;
-		operator()(0,1) = v01;
-		operator()(0,2) = v02;
-
-		operator()(1,0) = v10;
-		operator()(1,1) = v11;
-		operator()(1,2) = v12;
-
-		operator()(2,0) = v20;
-		operator()(2,1) = v21;
-		operator()(2,2) = v22;
-	}
-
-	Matrix (
-			const ScalarType& v00,
-			const ScalarType& v01,
-			const ScalarType& v02,
-			const ScalarType& v03,
-			const ScalarType& v10,
-			const ScalarType& v11,
-			const ScalarType& v12,
-			const ScalarType& v13,
-			const ScalarType& v20,
-			const ScalarType& v21,
-			const ScalarType& v22,
-			const ScalarType& v23,
-			const ScalarType& v30,
-			const ScalarType& v31,
-			const ScalarType& v32,
-			const ScalarType& v33
-			) {
-		static_assert (NumRows == 4 && NumCols == 4, "Invalid matrix size");
-
-		operator()(0,0) = v00;
-		operator()(0,1) = v01;
-		operator()(0,2) = v02;
-		operator()(0,3) = v03;
-
-		operator()(1,0) = v10;
-		operator()(1,1) = v11;
-		operator()(1,2) = v12;
-		operator()(1,3) = v13;
-
-		operator()(2,0) = v20;
-		operator()(2,1) = v21;
-		operator()(2,2) = v22;
-		operator()(2,3) = v23;
-
-		operator()(3,0) = v30;
-		operator()(3,1) = v31;
-		operator()(3,2) = v32;
-		operator()(3,3) = v33;
-	}
-
-
 
 	template <typename OtherDerived>
 	Matrix& operator+=(const OtherDerived& other) {
@@ -631,29 +580,28 @@ struct Matrix {
 	}
 
 	ScalarType& operator()(const size_t& i, const size_t& j) {
-		return mData[i*NumCols + j];
+		return mStorage.coeff(i, j);
 	}
 
 	ScalarType* data() {
-		return mData;
+        return mStorage.data();
 	}
 
 	const ScalarType* data() const {
-		return mData;
+        return mStorage.data();
 	}
 
 	const ScalarType& operator()(const size_t& i, const size_t& j) const {
-		return mData[i*NumCols + j];
+	    return mStorage.coeff(i, j);
 	}
 
 	size_t cols() const {
-		return NumCols;
+	    return mStorage.cols();
 	}
 
 	size_t rows() const {
-		return NumRows;
+	    return mStorage.rows();
 	}
-
 };
 	
 
@@ -1851,7 +1799,7 @@ class Quaternion : public Vector4f {
 						+(*this)[3] * (*this)[3] - (*this)[0] * (*this)[0]
 						)
 					);
-		}
+		};
 
 		Matrix33f toMatrix() const {
 			float x = (*this)[0];
