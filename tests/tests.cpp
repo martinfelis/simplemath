@@ -14,13 +14,15 @@ using namespace SimpleMath;
 
 template <typename ScalarType>
 bool CHECK_ARRAY_CLOSE (const ScalarType* expected, const ScalarType* actual, size_t length, ScalarType tol) {
-	for (size_t i = 0; i < length; ++i) {
+	for (size_t i = 0; i < length; i++) {
+		cout << "i = " << i << " expected: " << expected[i] << " actual: " << actual[i] << endl;
 		REQUIRE ( fabs(expected[i] - actual[i]) == Approx(0.0).epsilon(tol));
 	}
 
 	return true;
 }
 
+/*
 TEST_CASE ("Basic SimpleMath works", "[SimpleMath]") {
 	Matrix33f bla (Matrix33f::Identity());
 
@@ -57,6 +59,8 @@ TEST_CASE ("SimpleMatrixValuesConstructor", "[SimpleMath]" ) {
 	CHECK_ARRAY_CLOSE (array_result, vector.data(), 4, 1.0e-12);
 }
 
+*/
+
 TEST_CASE ("SimpleMatrixMul", "[SimpleMath]") {
 	Fixed<double, 3, 3> mat1;
 	Dynamic<double> mat2(3,3);
@@ -71,6 +75,8 @@ TEST_CASE ("SimpleMatrixMul", "[SimpleMath]") {
 	Fixed<double, 3, 3> sum_fixed_result = mat1 * mat2;
 	double array_result[] = { 1., 4., 9., 2., 8., 18., 3., 12., 27.};
 	CHECK_ARRAY_CLOSE(array_result, sum_fixed_result.data(), 9, 1.0e-12);
+
+//	cout << "fixed result: " << endl << sum_fixed_result << endl;
 
 	Dynamic<double> sum_dynamic_result = mat1 * mat2;
 	CHECK_ARRAY_CLOSE(array_result, sum_dynamic_result.data(), 9, 1.0e-12);
