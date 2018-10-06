@@ -22,7 +22,7 @@ bool CHECK_ARRAY_CLOSE (const ScalarType* expected, const ScalarType* actual, si
 	return true;
 }
 
-/*
+
 TEST_CASE ("Basic SimpleMath works", "[SimpleMath]") {
 	Matrix33f bla (Matrix33f::Identity());
 
@@ -33,33 +33,36 @@ TEST_CASE ("Basic SimpleMath works", "[SimpleMath]") {
 	cout << bla << endl;
 }
 
+
 TEST_CASE ("SimpleMatrixAdd", "[SimpleMath]") {
-	Fixed<double, 3, 3> mat1;
-	Dynamic<double> mat2(3,3);
+	Matrix<double, 3, 3> mat1;
+	Matrix<double> mat2 (3,3);
 
 	for (size_t i = 0; i < 3; i++) {
 		for (size_t j = 0; j < 3; j++) {
 			mat1(i,j) = (i + 1) * (j + 1);
+			mat2(i,j) = 0.0;
 		}
 		mat2(i,i) = 1;
 	}
 
-	Fixed<double, 3, 3> sum_fixed_result = mat1 + mat2;
+	Matrix<double, 3, 3> sum_fixed_result = mat1 + mat2;
 	double array_result[] = { 2., 2., 3., 2., 5., 6., 3., 6., 10.};
 	CHECK_ARRAY_CLOSE(array_result, sum_fixed_result.data(), 9, 1.0e-12);
 
-	Dynamic<double> sum_dynamic_result = mat1 + mat2;
+	Matrix<double> sum_dynamic_result = mat1 + mat2;
 	CHECK_ARRAY_CLOSE(array_result, sum_dynamic_result.data(), 9, 1.0e-12);
 }
 
 TEST_CASE ("SimpleMatrixValuesConstructor", "[SimpleMath]" ) {
-	Fixed<double, 4, 1> vector (1.0, 2.0, 3.0, 4.0);
+	Matrix<double, 4, 1> vector (1.0, 2.0, 3.0, 4.0);
 
 	double array_result[] = { 1.0, 2.0, 3.0, 4.0 };
 	CHECK_ARRAY_CLOSE (array_result, vector.data(), 4, 1.0e-12);
 }
 
-*/
+
+/*
 
 TEST_CASE ("SimpleMatrixMul", "[SimpleMath]") {
 	Fixed<double, 3, 3> mat1;
@@ -249,10 +252,10 @@ TEST_CASE ("SimpleMathConstTranspose", "[SimpleMath]") {
 	float result = const_block.transpose() * const_block;
 	cout << result << endl;
 }
-
+*/
 
 TEST_CASE ("SimpleMathUnifiedFixedDynamic", "[SimpleMath]") {
-	Matrix<double, 3, 3>  fixed_mat33;
+	Matrix<double, 3, 3> fixed_mat33;
 	Matrix<float> dynamic_mat33 (3, 3);
 
 	dynamic_mat33 <<
@@ -267,7 +270,7 @@ TEST_CASE ("SimpleMathUnifiedFixedDynamic", "[SimpleMath]") {
 	cout << fixed_mat33(1,1) << endl;
 	cout << "matrix " << sizeof(Matrix<double, 3, 3>) << endl;
 
-	cout << "fixed: " << fixed_mat33 << " size: " << fixed_mat33.rows() << ", " << fixed_mat33.cols() << endl;
+	cout << "fixed: " << fixed_mat33 << endl;
 	cout << "dyn:" << dynamic_mat33 << endl;
 
 	cout << dynamic_mat33(0, 0) << ", " << dynamic_mat33(0, 1) << ", " << dynamic_mat33(0, 2) << endl
