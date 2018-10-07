@@ -13,7 +13,7 @@ using namespace SimpleMath;
 	} while ( false )
 
 template <typename ScalarType>
-bool CHECK_ARRAY_CLOSE (const ScalarType* expected, const ScalarType* actual, size_t length, ScalarType tol) {
+bool CHECK_ARRAY_CLOSE (const ScalarType* expected, const ScalarType* actual, size_t length, const ScalarType& tol) {
 	for (size_t i = 0; i < length; i++) {
 		cout << "i = " << i << " expected: " << expected[i] << " actual: " << actual[i] << endl;
 		REQUIRE ( fabs(expected[i] - actual[i]) == Approx(0.0).epsilon(tol));
@@ -22,6 +22,7 @@ bool CHECK_ARRAY_CLOSE (const ScalarType* expected, const ScalarType* actual, si
 	return true;
 }
 
+/*
 
 TEST_CASE ("Basic SimpleMath works", "[SimpleMath]") {
 	Matrix33f bla (Matrix33f::Identity());
@@ -36,12 +37,11 @@ TEST_CASE ("Basic SimpleMath works", "[SimpleMath]") {
 
 TEST_CASE ("SimpleMatrixAdd", "[SimpleMath]") {
 	Matrix<double, 3, 3> mat1;
-	Matrix<double> mat2 (3,3);
+	Matrix<double> mat2 (Matrix<double>::Zero(3, 3));
 
 	for (size_t i = 0; i < 3; i++) {
 		for (size_t j = 0; j < 3; j++) {
 			mat1(i,j) = (i + 1) * (j + 1);
-			mat2(i,j) = 0.0;
 		}
 		mat2(i,i) = 1;
 	}
@@ -61,12 +61,18 @@ TEST_CASE ("SimpleMatrixValuesConstructor", "[SimpleMath]" ) {
 	CHECK_ARRAY_CLOSE (array_result, vector.data(), 4, 1.0e-12);
 }
 
+TEST_CASE ("InitializeWithZeroMatrix", "[SimpleMath]") {
+    Matrix<double, 3, 3> mat_fixed (Matrix<double, 3, 3>::Zero());
+	Matrix<double> mat_dynamic (Matrix<double>::Zero(3, 3));
 
-/*
+    double array_result[] = { 0., 0., 0., 0., 0., 0., 0., 0., 0.};
+    CHECK_ARRAY_CLOSE(array_result, mat_fixed.data(), 9, 1.0e-12);
+	CHECK_ARRAY_CLOSE(array_result, mat_dynamic.data(), 9, 1.0e-12);
+}
 
 TEST_CASE ("SimpleMatrixMul", "[SimpleMath]") {
-	Fixed<double, 3, 3> mat1;
-	Dynamic<double> mat2(3,3);
+	Matrix<double, 3, 3> mat1;
+	Matrix<double> mat2(3,3);
 
 	for (size_t i = 0; i < 3; i++) {
 		for (size_t j = 0; j < 3; j++) {
@@ -75,19 +81,20 @@ TEST_CASE ("SimpleMatrixMul", "[SimpleMath]") {
 		mat2(i,i) = i + 1;
 	}
 
-	Fixed<double, 3, 3> sum_fixed_result = mat1 * mat2;
+	Matrix<double, 3, 3> sum_fixed_result = mat1 * mat2;
 	double array_result[] = { 1., 4., 9., 2., 8., 18., 3., 12., 27.};
 	CHECK_ARRAY_CLOSE(array_result, sum_fixed_result.data(), 9, 1.0e-12);
 
 //	cout << "fixed result: " << endl << sum_fixed_result << endl;
 
-	Dynamic<double> sum_dynamic_result = mat1 * mat2;
+	Matrix<double> sum_dynamic_result = mat1 * mat2;
 	CHECK_ARRAY_CLOSE(array_result, sum_dynamic_result.data(), 9, 1.0e-12);
 }
 
+
 TEST_CASE ("SimpleMatrixBlock", "[SimpleMath]") {
-	Fixed<double, 6, 6> mat_fixed;
-	Dynamic<double> mat_dynamic(6,6);
+	Matrix<double, 6, 6> mat_fixed;
+	Matrix<double> mat_dynamic(6,6);
 
 	for (size_t i = 0; i < mat_fixed.rows(); i++) {
 		for (size_t j = 0; j < mat_fixed.cols(); j++) {
@@ -104,7 +111,7 @@ TEST_CASE ("SimpleMatrixBlock", "[SimpleMath]") {
 	cout << mat_fixed.block<3,3>(1,1).block<2,2>(0,0) << endl;
 
 	cout << "Assignment: dynamic = dynamic.block" << endl;
-	Dynamic<double> mat_dynamic_block(2,2);
+	Matrix<double> mat_dynamic_block(2,2);
 	mat_dynamic_block = mat_dynamic.block<2,2>(1,1);
 	cout << mat_dynamic_block << endl;
 
@@ -116,9 +123,10 @@ TEST_CASE ("SimpleMatrixBlock", "[SimpleMath]") {
 	cout << mat_dynamic.block<2,2>(1,1) + mat_fixed.block<2,2>(1,1) << endl;
 }
 
+
 TEST_CASE ("SimpleMatrixTranspose", "[SimpleMath]") {
-	Fixed<double, 6, 6> mat_fixed;
-	Dynamic<double> mat_dynamic(6,6);
+	Matrix<double, 6, 6> mat_fixed;
+	Matrix<double> mat_dynamic(6,6);
 
 	for (size_t i = 0; i < mat_fixed.rows(); i++) {
 		for (size_t j = 0; j < mat_fixed.cols(); j++) {
@@ -130,8 +138,8 @@ TEST_CASE ("SimpleMatrixTranspose", "[SimpleMath]") {
 }
 
 TEST_CASE ("SimpleMatrixAssignment", "[SimpleMath]") {
-	Fixed<double, 6, 6> mat_fixed;
-	Dynamic<double> mat_dynamic(3,3);
+	Matrix<double, 6, 6> mat_fixed;
+	Matrix<double> mat_dynamic(3,3);
 
 	for (size_t i = 0; i < mat_fixed.rows(); i++) {
 		for (size_t j = 0; j < mat_fixed.cols(); j++) {
@@ -148,8 +156,8 @@ TEST_CASE ("SimpleMatrixAssignment", "[SimpleMath]") {
 }
 
 TEST_CASE ("SimpleMatrixBlockComparison", "[SimpleMath]") {
-	Fixed<double, 6, 6> mat_fixed;
-	Dynamic<double> mat_dynamic(3,3);
+	Matrix<double, 6, 6> mat_fixed;
+	Matrix<double> mat_dynamic(3,3);
 
 	for (size_t i = 0; i < mat_fixed.rows(); i++) {
 		for (size_t j = 0; j < mat_fixed.cols(); j++) {
@@ -171,16 +179,16 @@ TEST_CASE ("SimpleMatrixBlockComparison", "[SimpleMath]") {
 }
 
 TEST_CASE ("SimpleMatrixMultiplyScalar", "[SimpleMath]") {
-	Dynamic<double> mat_dynamic(3,3);
-  Fixed<double,3,3> mat_fixed;
+	Matrix<double> mat_dynamic(3,3);
+  	Matrix<double,3,3> mat_fixed;
 
 	mat_dynamic(0,0) = 1.0; mat_dynamic(0,1) = 2.0; mat_dynamic(0,2) = 3.0;
 	mat_dynamic(1,0) = 4.0; mat_dynamic(1,1) = 5.0; mat_dynamic(1,2) = 6.0;
 	mat_dynamic(2,0) = 7.0; mat_dynamic(2,1) = 8.0; mat_dynamic(2,2) = 9.0;
 
-  mat_fixed = mat_dynamic;
+  	mat_fixed = mat_dynamic;
 
-	Dynamic<double> mult = mat_dynamic * 3.;
+	Matrix<double> mult = mat_dynamic * 3.;
 
 	for (int i = 0, nr = mat_dynamic.rows(); i < nr; ++i)
 		for (int j = 0, nc = mat_dynamic.cols(); j < nc; ++j)
@@ -195,7 +203,7 @@ TEST_CASE ("SimpleMatrixMultiplyScalar", "[SimpleMath]") {
     }
 
     // fixed * scalar
-    Fixed<double,3,3> mult_fixed = mat_fixed * 3.;
+    Matrix<double,3,3> mult_fixed = mat_fixed * 3.;
     for (int i = 0, nr = mat_dynamic.rows(); i < nr; ++i)
         for (int j = 0, nc = mat_dynamic.cols(); j < nc; ++j)
                     REQUIRE ((mult_fixed(i,j)) == (mat_dynamic(i,j) * 3.0));
@@ -203,13 +211,13 @@ TEST_CASE ("SimpleMatrixMultiplyScalar", "[SimpleMath]") {
 }
 
 TEST_CASE ("SimpleMatrixCommaInitializer", "[SimpleMath]") {
-	Dynamic<double> mat_dynamic(3,3);
+	Matrix<double> mat_dynamic(3,3);
 
 	mat_dynamic(0,0) = 1.0; mat_dynamic(0,1) = 2.0; mat_dynamic(0,2) = 3.0;
 	mat_dynamic(1,0) = 4.0; mat_dynamic(1,1) = 5.0; mat_dynamic(1,2) = 6.0;
 	mat_dynamic(2,0) = 7.0; mat_dynamic(2,1) = 8.0; mat_dynamic(2,2) = 9.0;
 
-	Dynamic<double> mat_dynamic_comma_initializer(3,3);
+	Matrix<double> mat_dynamic_comma_initializer(3,3);
 	
 	mat_dynamic_comma_initializer << 
 		1.0, 2.0, 3.0,
@@ -220,7 +228,7 @@ TEST_CASE ("SimpleMatrixCommaInitializer", "[SimpleMath]") {
 		for (int j = 0, nc = mat_dynamic.cols(); j < nc; ++j)
 			REQUIRE ((mat_dynamic(i,j)) == (mat_dynamic_comma_initializer(i,j)));
 
-	Fixed<double, 3, 3> mat_fixed_comma_initializer;
+	Matrix<double, 3, 3> mat_fixed_comma_initializer;
 	mat_fixed_comma_initializer <<
 		1.0, 2.0, 3.0,
 		4.0, 5.0, 6.0,
@@ -232,17 +240,17 @@ TEST_CASE ("SimpleMatrixCommaInitializer", "[SimpleMath]") {
 }
 
 TEST_CASE ("SimpleMathConstTranspose", "[SimpleMath]") {
-	Dynamic<double> mat_dynamic(3,3);
+	Matrix<double> mat_dynamic(3,3);
 
 	mat_dynamic(0,0) = 1.0; mat_dynamic(0,1) = 2.0; mat_dynamic(0,2) = 3.0;
 	mat_dynamic(1,0) = 4.0; mat_dynamic(1,1) = 5.0; mat_dynamic(1,2) = 6.0;
 	mat_dynamic(2,0) = 7.0; mat_dynamic(2,1) = 8.0; mat_dynamic(2,2) = 9.0;
 
-	const Block<Dynamic<double>, double, 3, 1> const_block(&mat_dynamic, 0, 0);
+	const Block<Matrix<double>, double, 3, 1> const_block(&mat_dynamic, 0, 0);
 
-	Fixed<double, 3, 1> vec1;
+	Matrix<double, 3, 1> vec1;
 	vec1 = const_block;
-	Dynamic<double> res1;
+	Matrix<double> res1;
 
 	cout << "Result:" << endl;
 	res1 = vec1.transpose() * vec1;
@@ -252,7 +260,6 @@ TEST_CASE ("SimpleMathConstTranspose", "[SimpleMath]") {
 	float result = const_block.transpose() * const_block;
 	cout << result << endl;
 }
-*/
 
 TEST_CASE ("SimpleMathUnifiedFixedDynamic", "[SimpleMath]") {
 	Matrix<double, 3, 3> fixed_mat33;
@@ -279,4 +286,24 @@ TEST_CASE ("SimpleMathUnifiedFixedDynamic", "[SimpleMath]") {
 
 	cout << sizeof(Matrix<float, 1, 1>) << endl;
     cout << sizeof(Matrix<float>) << endl;
+}
+
+*/
+
+TEST_CASE ("HouseholderQRSimple", "[SimpleMath]") {
+	Matrix<double, 3, 3> test_matrix;
+	test_matrix <<
+				1., 2., 3.,
+			4., 4., 6.,
+			8., 9., 7.;
+
+	Matrix<double, 3, 1> x;
+	x[0] = 1.;
+	x[1] = 2.;
+	x[2] = 3.;
+
+	Matrix<double, 3, 1> rhs  = test_matrix * x;
+	Matrix<double, 3, 1> x_qr =test_matrix.householderQr().solve (rhs);
+
+	CHECK_ARRAY_CLOSE (x.data(), x_qr.data(), 3, 1.0e-14);
 }

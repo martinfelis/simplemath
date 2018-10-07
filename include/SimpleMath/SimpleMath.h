@@ -32,8 +32,8 @@ struct Transpose;
 typedef Matrix<float, 3, 3> Matrix33f;
 typedef Matrix<float, 3, 1> Vector3f;
 
-//template <typename Derived>
-//class HouseholderQR;
+template <typename Derived, typename ScalarType, int NumRows, int NumCols>
+class HouseholderQR;
 
 //template <typename Derived>
 //class ColPivHouseholderQR;
@@ -45,7 +45,7 @@ typedef Matrix<float, 3, 1> Vector3f;
 //
 template <typename Derived, typename ScalarType, int Rows, int Cols>
 struct MatrixBase {
-    typedef MatrixBase<Derived, ScalarType, Rows, Cols> Matrixype;
+    typedef MatrixBase<Derived, ScalarType, Rows, Cols> MatrixType;
 	typedef ScalarType value_type;
 	
 	template <typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
@@ -130,8 +130,9 @@ struct MatrixBase {
 	}
 
   template <typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
-	Derived operator*(const MatrixBase<OtherDerived, OtherScalarType, OtherRows, OtherCols>& other) const {
-		Derived result (rows(), other.cols());
+  Matrix<ScalarType, Rows, OtherCols> operator*(const MatrixBase<OtherDerived, OtherScalarType, OtherRows, OtherCols>& other) const {
+      Matrix<ScalarType, Rows, OtherCols> result;
+      result.mStorage.resize(rows(), other.cols());
 
 		unsigned int i,j,k;
 		for (i = 0; i < rows(); i++) {
@@ -207,11 +208,11 @@ struct MatrixBase {
 	}
 
 	const ScalarType& operator[](const size_t& i) const {
-		static_assert(Cols == 1, "Invalid matrix size");
+        assert(cols() == 1);
 		return static_cast<const Derived*>(this)->operator()(i,0);
 	}
 	ScalarType& operator[](const size_t& i) {
-		static_assert(Cols == 1, "Invalid matrix size");
+	    assert(cols() == 1);
 		return static_cast<Derived*>(this)->operator()(i,0);
 	}
 
@@ -309,10 +310,13 @@ struct MatrixBase {
     Derived inverse() const {
         return colPivHouseholderQr().inverse();
     }
+    */
 
-    const HouseholderQR<Derived> householderQr() const {
-        return HouseholderQR<Derived>(*this);
+    const HouseholderQR<Derived, ScalarType, Rows, Cols> householderQr() const {
+        return HouseholderQR<Derived, ScalarType, Rows, Cols>(*this);
     }
+
+    /*
     const ColPivHouseholderQR<Derived> colPivHouseholderQr() const {
         return ColPivHouseholderQR<Derived>(*this);
     }
@@ -329,7 +333,7 @@ struct MatrixBase {
 	//
 	// Special Constructors
 	//
-	static Derived Zero(size_t NumRows = Rows, size_t NumCols = Cols) {
+	static Derived Zero(int NumRows = Rows, int NumCols = Cols) {
 		Derived result (NumRows, NumCols);
 
 		for (size_t i = 0; i < NumRows; i++) {
@@ -411,17 +415,12 @@ struct MatrixBase {
 	//
 	// Transpose
 	//
-	Transpose<Derived, ScalarType, Rows, Cols> transpose() {
-		return Transpose<Derived, ScalarType, Rows, Cols>(static_cast<Derived*>(this));
+	Transpose<Derived, ScalarType, Cols, Rows> transpose() {
+		return Transpose<Derived, ScalarType, Cols, Rows>(static_cast<Derived*>(this));
 	}
 
-	const Transpose<const Derived, ScalarType, Rows, Cols> transpose() const {
-		return Transpose<const Derived, ScalarType, Rows, Cols>(static_cast<const Derived*>(this));
-	}
-
-	template <typename OtherDerived>
-	Transpose<OtherDerived, ScalarType, Rows, Cols> transpose() {
-		return Transpose<OtherDerived, ScalarType, Rows, Cols>(static_cast<Derived*>(this));
+	const Transpose<const Derived, ScalarType, Cols, Rows> transpose() const {
+		return Transpose<const Derived, ScalarType, Cols, Rows>(static_cast<const Derived*>(this));
 	}
 };
 
@@ -455,7 +454,7 @@ struct Storage {
     }
 
 		Storage(int rows, int cols) {
-			std::cout << "Fixed sized storage resize with size " << rows << ", " << cols << std::endl;
+			std::cout << "Fixed sized storage resize from " << NumRows << ", " << NumCols << " to " << rows << ", " << cols << std::endl;
 			resize(rows, cols);
 		}
 
@@ -464,6 +463,7 @@ struct Storage {
     size_t cols() const { return NumCols; }
 
     void resize(int num_rows, int num_cols) {
+            // Resizing of fixed size matrices not allowed
 			assert (num_rows == NumRows && num_cols == NumCols);
     }
 
@@ -480,25 +480,31 @@ struct Storage {
     }
 };
 
-template <typename ScalarType>
-struct Storage<ScalarType, 0, Dynamic, Dynamic> {
-   ScalarType* mData = nullptr;
-   int mRows = 0;
-   int mCols = 0;
+template <typename ScalarType, int SizeAtCompileTime, int NumRows = -1, int NumCols = -1>
+struct Storage;
 
-   Storage() {
-       std::cout << "Dynamic sized storage" << std::endl;
-   }
+template <typename ScalarType, int NumCols>
+struct Storage<ScalarType, 0, 0, NumCols> : public Storage<ScalarType, 0, Dynamic, NumCols> {};
 
-	 Storage(int rows, int cols) {
-		 std::cout << "Dynamic sized storage resize with size " << rows << ", " << cols << std::endl;
-		 resize(rows, cols);
-	 }
+template <typename ScalarType, int NumCols>
+struct Storage<ScalarType, 0, Dynamic, NumCols> {
+    ScalarType* mData = nullptr;
+    int mRows = 0;
+    int mCols = 0;
 
-   size_t rows() const { return mRows; }
-   size_t cols() const { return mCols; }
+    Storage() {
+        std::cout << "Row vector" << std::endl;
+    }
 
-   void resize(int num_rows, int num_cols) {
+    Storage(int rows, int cols) {
+        std::cout << "Row sized storage resize from " << mRows << ", " << mCols << " to " << rows << ", " << cols << std::endl;
+        resize(rows, cols);
+    }
+
+    size_t rows() const { return mRows; }
+    size_t cols() const { return mCols; }
+
+    void resize(int num_rows, int num_cols) {
         if (mRows != num_rows || mCols != num_cols) {
             if (mData != nullptr) {
                 delete[] mData;
@@ -508,7 +514,7 @@ struct Storage<ScalarType, 0, Dynamic, Dynamic> {
             mRows = num_rows;
             mCols = num_cols;
         }
-   }
+    }
 
     ScalarType& coeff(int row_index, int col_index) {
         assert (row_index >= 0 && row_index <= mRows);
@@ -523,13 +529,54 @@ struct Storage<ScalarType, 0, Dynamic, Dynamic> {
 };
 
 
+template <typename ScalarType>
+struct Storage<ScalarType, 0, Dynamic, Dynamic> {
+    ScalarType* mData = nullptr;
+    int mRows = 0;
+    int mCols = 0;
+
+    Storage() {
+        std::cout << "Dynamic sized storage" << std::endl;
+    }
+
+    Storage(int rows, int cols) {
+        std::cout << "Dynamic sized storage resize from " << mRows << ", " << mCols << " to " << rows << ", " << cols << std::endl;
+        resize(rows, cols);
+    }
+
+    size_t rows() const { return mRows; }
+    size_t cols() const { return mCols; }
+
+    void resize(int num_rows, int num_cols) {
+        if (mRows != num_rows || mCols != num_cols) {
+            if (mData != nullptr) {
+                delete[] mData;
+            }
+
+            mData = new ScalarType[num_rows * num_cols];
+            mRows = num_rows;
+            mCols = num_cols;
+        }
+    }
+
+    ScalarType& coeff(int row_index, int col_index) {
+        assert (row_index >= 0 && row_index <= mRows);
+        assert (col_index >= 0 && col_index <= mCols);
+        return mData[row_index * mCols + col_index];
+    }
+    const ScalarType& coeff(int row_index, int col_index) const {
+        assert (row_index >= 0 && row_index <= mRows);
+        assert (col_index >= 0 && col_index <= mCols);
+        return mData[row_index * mCols + col_index];
+    }
+    };
+
+
 template <typename ScalarType, int NumRows, int NumCols>
 struct Matrix : public MatrixBase<Matrix<ScalarType, NumRows, NumCols>, ScalarType, NumRows, NumCols>{
-	typedef ScalarType value_type;
-
 	enum {
-		RowsAtCompileTime = NumRows,
-		ColsAtCompileTime = NumCols,
+		RowsAtCompileTime = NumRows == Dynamic ? 0 : NumRows,
+		ColsAtCompileTime = NumCols == Dynamic ? 0 : NumCols,
 		SizeAtCompileTime = (NumRows != Dynamic && NumCols != Dynamic) ? NumRows * NumCols : 0
 	};
 
@@ -537,8 +584,8 @@ struct Matrix : public MatrixBase<Matrix<ScalarType, NumRows, NumCols>, ScalarTy
 
 	Matrix() :
 		mStorage (
-				NumRows == Dynamic ? 0 : NumRows,
-				NumCols == Dynamic ? 0 : NumCols
+				RowsAtCompileTime,
+				ColsAtCompileTime
 				)
 	{
 	}
@@ -546,12 +593,8 @@ struct Matrix : public MatrixBase<Matrix<ScalarType, NumRows, NumCols>, ScalarTy
     explicit Matrix(int rows, int cols) :
         mStorage(rows, cols) {}
 
-/*
-   Matrix (const Matrix &other) {
-		assert (NumRows == other.rows() && NumCols == other.cols() && "Error: matrix dimensions do not match!");
-		memcpy (mData, other.data(), sizeof (ScalarType) * rows() * cols());
-	}
- */
+    explicit Matrix (size_t rows, size_t cols) :
+        mStorage(rows, cols) {}
 
     template <typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
 	Matrix(const MatrixBase<OtherDerived, OtherScalarType, OtherRows, OtherCols>& other) {
@@ -563,25 +606,6 @@ struct Matrix : public MatrixBase<Matrix<ScalarType, NumRows, NumCols>, ScalarTy
 				this->operator()(i,j) = other(i,j);
 			}
 		}
-	}
-
-	explicit Matrix (size_t rows, size_t cols) {
-		assert (rows == NumRows);
-		assert (cols == cols);
-	}
-
-	template <typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
-	Matrix& operator=(const MatrixBase<OtherDerived, OtherScalarType, OtherRows, OtherCols>& other) {
-		std::cout << "Assignmentd other "  << other.rows() << ", " << other.cols() << std::endl;
-		if (static_cast<const void*>(this) != static_cast<const void*>(&other)) {
-			for (size_t i = 0; i < other.rows(); i++) {
-				for (size_t j = 0; j < other.cols(); j++) {
-					this->operator()(i,j) = other(i,j);
-				}
-			}
-		}
-
-		return *this;
 	}
 
     //
@@ -718,7 +742,7 @@ struct Matrix : public MatrixBase<Matrix<ScalarType, NumRows, NumCols>, ScalarTy
 
 	template <typename OtherDerived>
 	Matrix& operator-=(const OtherDerived& other) {
-		assert (NumRows == other.rows() && NumCols == other.cols() && "Error: matrix dimensions do not match!");
+		assert (rows() == other.rows() && cols() == other.cols() && "Error: matrix dimensions do not match!");
 
 		for (size_t i = 0; i < rows(); i++) {
 			for (size_t j = 0; j < cols(); j++) {
@@ -830,8 +854,7 @@ struct CommaInitializer {
 //
 template <typename Derived, typename ScalarType, int NumRows, int NumCols>
 struct Transpose : public MatrixBase<Transpose<Derived, ScalarType, NumRows, NumCols>, ScalarType, NumRows, NumCols> {
-	typedef MatrixBase<Derived, ScalarType, NumCols, NumRows> Matrixype;
-	Derived* mTransposeSource;	
+	Derived* mTransposeSource;
 
 	Transpose(Derived* transpose_source) :
 		mTransposeSource(transpose_source)
@@ -989,279 +1012,37 @@ struct Block : public MatrixBase<Block<Derived, ScalarType, NumRows, NumCols>, S
 	}
 };
 
-/*
-//
-// Fixed Matrices (i.e. size defined at compile time)
-//
-template <typename val_type, int NumRows, int NumCols>
-struct Fixed : public MatrixBase<Fixed<val_type, NumRows, NumCols>, val_type, NumRows, NumCols> {
-	typedef Fixed<val_type, NumRows, NumCols> matrix_type;
-	typedef val_type value_type;
-
-	val_type mData[NumRows * NumCols];
-
-	Fixed() {
-		for (size_t i = 0; i < NumRows * NumCols; i++) {
-			mData[i] = static_cast<val_type> (0.);
-		}
-	}
-
-	Fixed (const Fixed &other) {
-		assert (NumRows == other.rows() && NumCols == other.cols() && "Error: matrix dimensions do not match!");
-		memcpy (mData, other.data(), sizeof (val_type) * rows() * cols());
-	}
-
-	template <typename OtherDerived>
-	Fixed(const OtherDerived &other) {
-		std::cout << "FCC" << std::endl;
-		assert (other.rows() == NumRows && other.cols() == NumCols);
-
-		for (size_t i = 0; i < rows(); i++) {
-			for (size_t j = 0; j < cols(); j++) {
-				this->operator()(i,j) = other(i,j);
-			}
-		}
-	}
-
-	explicit Fixed (size_t rows, size_t cols) {
-		assert (rows == NumRows);
-		assert (cols == cols);
-	}
-
-
-
-
-
-	template <typename OtherDerived>
-	Fixed& operator+=(const OtherDerived& other) {
-		assert (NumRows == other.rows() && NumCols == other.cols() && "Error: matrix dimensions do not match!");
-
-		for (size_t i = 0; i < rows(); i++) {
-			for (size_t j = 0; j < cols(); j++) {
-				this->operator()(i,j) += other(i,j);
-			}
-		}
-		return *this;
-	}
-
-	template <typename OtherDerived>
-	Fixed& operator-=(const OtherDerived& other) {
-		assert (NumRows == other.rows() && NumCols == other.cols() && "Error: matrix dimensions do not match!");
-
-		for (size_t i = 0; i < rows(); i++) {
-			for (size_t j = 0; j < cols(); j++) {
-				this->operator()(i,j) -= other(i,j);
-			}
-		}
-		return *this;
-	}
-
-	val_type& operator()(const size_t& i, const size_t& j) {
-		return mData[i*NumCols + j];
-	}
-
-	val_type* data() {
-		return mData;
-	}
-
-	const val_type* data() const {
-		return mData;
-	}
-
-	const val_type& operator()(const size_t& i, const size_t& j) const {
-		return mData[i*NumCols + j];
-	}
-
-	size_t cols() const {
-		return NumCols;
-	}
-
-	size_t rows() const {
-		return NumRows;
-	}
-};
-
-//
-// Dynamic Matrices
-//
-template <typename ScalarType>
-struct Dynamic : public MatrixBase<Dynamic<ScalarType>, ScalarType, -1, -1> {
-	typedef Dynamic<ScalarType> matrix_type;
-
-	ScalarType* mData;
-	int mNumRows;
-	int mNumCols;
-
-	Dynamic() : 
-		mData (NULL),
-		mNumRows (0),
-		mNumCols (0)
-	{
-	}
-
-	Dynamic(int num_rows, int num_cols) :
-		mNumRows (num_rows),
-		mNumCols (num_cols) {
-		mData = new ScalarType[mNumRows * mNumCols];
-
-		for (size_t i = 0; i < (size_t) mNumRows * (size_t) mNumCols; i++) {
-			mData[i] = static_cast<ScalarType> (0.);
-		}
-	}
-
-	~Dynamic() {
-		if (mData != NULL) {
-			delete[] mData;
-			mData = NULL;
-		}
-	}
-
-	Dynamic(const Dynamic &other) :
-		mNumRows (other.rows()),
-		mNumCols (other.cols()) {
-		mData = new ScalarType[mNumRows * mNumCols];
-		assert (mNumRows == (int) other.rows() && mNumCols == (int) other.cols() && "Error: matrix dimensions do not match!");
-		memcpy (mData, other.data(), sizeof (ScalarType) * rows() * cols());
-	}
-
-	template <typename OtherDerived>
-	Dynamic(const OtherDerived &other) :
-		mNumRows (other.rows()),
-		mNumCols (other.cols()) {
-		mData = new ScalarType[mNumRows * mNumCols];
-		assert (mNumRows == other.rows() && mNumCols == other.cols() && "Error: matrix dimensions do not match!");
-		for (size_t i = 0; i < rows(); i++) {
-			for (size_t j = 0; j < cols(); j++) {
-				this->operator()(i,j) = other(i,j);
-			}
-		}
-	}
-
-	Dynamic& operator=(const Dynamic &other) {
-		if (static_cast<const void*>(this) != static_cast<const void*>(&other)) {
-			if (mData != NULL) {
-				assert (mData != NULL);
-				delete[] mData;
-			}
-
-			mNumRows = other.rows();
-			mNumCols = other.cols();
-			mData = new ScalarType[mNumRows * mNumCols];
-			
-			for (size_t i = 0; i < rows(); i++) {
-				for (size_t j = 0; j < cols(); j++) {
-					this->operator()(i,j) = other(i,j);
-				}
-			}
-		}
-
-		return *this;
-	}
-
-	template <typename OtherDerived>
-	Dynamic& operator=(const OtherDerived &other) {
-		if (static_cast<const void*>(this) != static_cast<const void*>(&other)) {
-			assert (mData != NULL);
-			delete[] mData;
-
-			mNumRows = other.rows();
-			mNumCols = other.cols();
-			mData = new ScalarType[mNumRows * mNumCols];
-			
-			for (size_t i = 0; i < rows(); i++) {
-				for (size_t j = 0; j < cols(); j++) {
-					this->operator()(i,j) = other(i,j);
-				}
-			}
-		}
-
-		return *this;
-	}
-
-	template <typename OtherDerived>
-	Dynamic& operator+=(const OtherDerived& other) {
-		assert (mNumRows == (int) other.rows() && mNumCols == (int) other.cols() && "Error: matrix dimensions do not match!");
-
-		for (size_t i = 0; i < rows(); i++) {
-			for (size_t j = 0; j < cols(); j++) {
-				this->operator()(i,j) += other(i,j);
-			}
-		}
-		
-		return *this;
-	}
-
-	template <typename OtherDerived>
-	Dynamic& operator-=(const OtherDerived& other) {
-		assert (mNumRows == (int) other.rows() && mNumCols == (int) other.cols() && "Error: matrix dimensions do not match!");
-
-		for (size_t i = 0; i < rows(); i++) {
-			for (size_t j = 0; j < cols(); j++) {
-				this->operator()(i,j) -= other(i,j);
-			}
-		}
-		
-		return *this;
-	}
-
-	ScalarType& operator[](const size_t& i) {
-		return mData[i];
-	}
-
-	ScalarType& operator()(const size_t& i, const size_t& j) {
-		return mData[i*cols() + j];
-	}
-
-	const ScalarType& operator()(const size_t& i, const size_t& j) const {
-		return mData[i*cols() + j];
-	}
-
-	ScalarType* data() {
-		return mData;
-	}
-
-	const ScalarType* data() const {
-		return mData;
-	}
-
-	size_t cols() const {
-		return mNumCols;
-	}
-
-	size_t rows() const {
-		return mNumRows;
-	}
-};
-
 //
 // QR Decomposition
 //
-    template <typename matrix_type>
+    template <typename Derived, typename ScalarType, int NumRows, int NumCols>
     class HouseholderQR {
     public:
-        typedef typename matrix_type::value_type value_type;
+        typedef MatrixBase<Derived, ScalarType, NumCols, NumRows> MatrixType;
+        typedef typename MatrixType::value_type value_type;
+
         HouseholderQR() :
                 mIsFactorized(false)
         {}
 
     private:
-        typedef Dynamic<value_type> VectorXd;
-        typedef Dynamic<value_type> MatrixXXd;
+        typedef Matrix<value_type> VectorXd;
+        typedef Matrix<value_type> MatrixXXd;
 
         bool mIsFactorized;
-        MatrixXXd mQ;
-        MatrixXXd mR;
+        Derived mQ;
+        Derived mR;
 
     public:
-        HouseholderQR(const matrix_type &matrix) :
+        HouseholderQR(const MatrixType &matrix) :
                 mIsFactorized(false),
                 mQ(matrix.rows(), matrix.rows())
         {
             compute(matrix);
         }
-        HouseholderQR compute(const matrix_type &matrix) {
+        HouseholderQR compute(const MatrixType &matrix) {
             mR = matrix;
-            mQ = Dynamic<value_type>::Identity (mR.rows(), mR.rows());
+            mQ = MatrixType::Identity (mR.rows(), mR.rows());
 
             for (unsigned int i = 0; i < mR.cols(); i++) {
                 unsigned int block_rows = mR.rows() - i;
@@ -1279,6 +1060,9 @@ struct Dynamic : public MatrixBase<Dynamic<ScalarType>, ScalarType, -1, -1> {
                 v[0] = v[0] - alpha;
 
                 MatrixXXd Q (MatrixXXd::Identity(mR.rows(), mR.rows()));
+
+                std::cout << "Q = " << std::endl << Q << std::endl;
+
                 Q.block(i, i, block_rows, block_rows) = MatrixXXd (Q.block(i, i, block_rows, block_rows))
                                                         - MatrixXXd(v * v.transpose() / (v.squaredNorm() * 0.5));
 
@@ -1297,8 +1081,8 @@ struct Dynamic : public MatrixBase<Dynamic<ScalarType>, ScalarType, -1, -1> {
 
             return *this;
         }
-        Dynamic<value_type> solve (
-                const Dynamic<value_type> &rhs
+        Matrix<value_type> solve (
+                const Matrix<value_type, NumRows, 1> &rhs
         ) const {
             assert (mIsFactorized);
 
@@ -1321,7 +1105,7 @@ struct Dynamic : public MatrixBase<Dynamic<ScalarType>, ScalarType, -1, -1> {
 
             return x;
         }
-        Dynamic<value_type> inverse() const {
+        Matrix<value_type> inverse() const {
             assert (mIsFactorized);
 
             VectorXd rhs_temp = VectorXd::Zero(mQ.cols());
@@ -1337,14 +1121,15 @@ struct Dynamic : public MatrixBase<Dynamic<ScalarType>, ScalarType, -1, -1> {
 
             return result;
         }
-        Dynamic<value_type> householderQ () const {
+        Matrix<value_type> householderQ () const {
             return mQ;
         }
-        Dynamic<value_type> matrixR () const {
+        Matrix<value_type> matrixR () const {
             return mR;
         }
     };
 
+    /*
 template <typename matrix_type>
 class ColPivHouseholderQR {
     public:
