@@ -291,19 +291,21 @@ TEST_CASE ("SimpleMathUnifiedFixedDynamic", "[SimpleMath]") {
 */
 
 TEST_CASE ("HouseholderQRSimple", "[SimpleMath]") {
-	Matrix<double, 3, 3> test_matrix;
-	test_matrix <<
+	Matrix<double, 3, 3> A;
+	A <<
 				1., 2., 3.,
 			4., 4., 6.,
 			8., 9., 7.;
 
-	Matrix<double, 3, 1> x;
-	x[0] = 1.;
-	x[1] = 2.;
-	x[2] = 3.;
+	Matrix<double> B (Matrix<double>::Identity(3,3));
 
-	Matrix<double, 3, 1> rhs  = test_matrix * x;
-	Matrix<double, 3, 1> x_qr =test_matrix.householderQr().solve (rhs);
+	cout << "B = " << endl << B << endl;
 
-	CHECK_ARRAY_CLOSE (x.data(), x_qr.data(), 3, 1.0e-14);
+	Matrix<double, 3, 3> res = A * B;
+
+	cout << "size of res: " << res.rows() << ", " << res.cols() << endl;
+
+	cout << "res = " << endl << res << endl;
+
+	CHECK_ARRAY_CLOSE (A.data(), res.data(), 9, 1.0e-14);
 }

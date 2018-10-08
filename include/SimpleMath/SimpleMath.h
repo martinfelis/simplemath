@@ -444,6 +444,9 @@ inline Derived operator/(const MatrixBase<Derived, ScalarType, Rows, Cols> &matr
 template <typename ScalarType, int SizeAtCompileTime, int NumRows, int NumCols>
 struct Storage;
 
+template <typename ScalarType, int SizeAtCompileTime, int NumCols>
+struct Storage<ScalarType, SizeAtCompileTime, -1, NumCols> : public Storage<ScalarType, 0, -1, -1> {};
+
 // fixed storage
 template <typename ScalarType, int SizeAtCompileTime, int NumRows, int NumCols>
 struct Storage {
@@ -479,12 +482,6 @@ struct Storage {
         return mData[row_index * NumCols + col_index];
     }
 };
-
-template <typename ScalarType, int SizeAtCompileTime, int NumRows = -1, int NumCols = -1>
-struct Storage;
-
-template <typename ScalarType, int NumCols>
-struct Storage<ScalarType, 0, 0, NumCols> : public Storage<ScalarType, 0, Dynamic, NumCols> {};
 
 template <typename ScalarType, int NumCols>
 struct Storage<ScalarType, 0, Dynamic, NumCols> {
@@ -575,17 +572,17 @@ struct Storage<ScalarType, 0, Dynamic, Dynamic> {
 template <typename ScalarType, int NumRows, int NumCols>
 struct Matrix : public MatrixBase<Matrix<ScalarType, NumRows, NumCols>, ScalarType, NumRows, NumCols>{
 	enum {
-		RowsAtCompileTime = NumRows == Dynamic ? 0 : NumRows,
-		ColsAtCompileTime = NumCols == Dynamic ? 0 : NumCols,
+		RowsAtCompileTime = (NumCols == Dynamic || NumRows == Dynamic) ? -1 : NumRows,
+		ColsAtCompileTime = (NumCols == Dynamic || NumRows == Dynamic) ? -1 : NumCols,
 		SizeAtCompileTime = (NumRows != Dynamic && NumCols != Dynamic) ? NumRows * NumCols : 0
 	};
 
-    Storage<ScalarType, SizeAtCompileTime, NumRows, NumCols> mStorage;
+    Storage<ScalarType, SizeAtCompileTime, RowsAtCompileTime, ColsAtCompileTime> mStorage;
 
 	Matrix() :
 		mStorage (
-				RowsAtCompileTime,
-				ColsAtCompileTime
+				SizeAtCompileTime / ColsAtCompileTime,
+                SizeAtCompileTime / RowsAtCompileTime
 				)
 	{
 	}
@@ -725,8 +722,6 @@ struct Matrix : public MatrixBase<Matrix<ScalarType, NumRows, NumCols>, ScalarTy
         operator()(3,2) = v32;
         operator()(3,3) = v33;
     }
-
-
 
     template <typename OtherDerived>
 	Matrix& operator+=(const OtherDerived& other) {
