@@ -1013,7 +1013,7 @@ struct Block : public MatrixBase<Block<Derived, ScalarType, NumRows, NumCols>, S
     template <typename Derived, typename ScalarType, int NumRows, int NumCols>
     class HouseholderQR {
     public:
-        typedef MatrixBase<Derived, ScalarType, NumCols, NumRows> MatrixType;
+        typedef MatrixBase<Derived, ScalarType, NumRows, NumCols> MatrixType;
         typedef typename MatrixType::value_type value_type;
 
         HouseholderQR() :
@@ -1025,7 +1025,7 @@ struct Block : public MatrixBase<Block<Derived, ScalarType, NumRows, NumCols>, S
         typedef Matrix<value_type> MatrixXXd;
 
         bool mIsFactorized;
-        Derived mQ;
+        Matrix<ScalarType, NumRows, NumRows> mQ;
         Derived mR;
 
     public:
@@ -1046,6 +1046,8 @@ struct Block : public MatrixBase<Block<Derived, ScalarType, NumRows, NumCols>, S
                 MatrixXXd current_block = mR.block(i,i, block_rows, block_cols);
                 VectorXd column = current_block.block(0, 0, block_rows, 1);
 
+                std::cout << "column " << i << ": " << std::endl << column << std::endl;
+
                 value_type alpha = - column.norm();
                 if (current_block(0,0) < 0) {
                     alpha = - alpha;
@@ -1056,12 +1058,11 @@ struct Block : public MatrixBase<Block<Derived, ScalarType, NumRows, NumCols>, S
 
                 MatrixXXd Q (MatrixXXd::Identity(mR.rows(), mR.rows()));
 
-                std::cout << "Q = " << std::endl << Q << std::endl;
-
                 Q.block(i, i, block_rows, block_rows) = MatrixXXd (Q.block(i, i, block_rows, block_rows))
                                                         - MatrixXXd(v * v.transpose() / (v.squaredNorm() * 0.5));
 
                 mR = Q * mR;
+                std::cout << "Ri = " << std::endl << mR << std::endl;
 
                 // Normalize so that we have positive diagonal elements
                 if (mR(i,i) < 0) {
@@ -1069,6 +1070,7 @@ struct Block : public MatrixBase<Block<Derived, ScalarType, NumRows, NumCols>, S
                     Q.block(i,i,block_rows, block_rows) = MatrixXXd(Q.block(i,i,block_rows, block_rows)) * -1.;
                 }
 
+                std::cout << "Qi = " << std::endl << mQ << std::endl;
                 mQ = mQ * Q;
             }
 
@@ -1083,6 +1085,9 @@ struct Block : public MatrixBase<Block<Derived, ScalarType, NumRows, NumCols>, S
 
             VectorXd y = mQ.transpose() * rhs;
             VectorXd x = VectorXd::Zero(mR.cols());
+
+            std::cout << "rhs = " << rhs.transpose() << std::endl;
+            std::cout << "y = " << y.transpose() << std::endl;
 
             for (int i = mR.cols() - 1; i >= 0; --i) {
                 value_type z = y[i];

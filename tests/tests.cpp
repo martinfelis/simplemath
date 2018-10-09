@@ -295,7 +295,7 @@ TEST_CASE ("MultFixedAndDynamic", "[SimpleMath]") {
 	A <<
 				1., 2., 3.,
 			4., 4., 6.,
-			8., 9., 7.;
+			7., 8., 9.;
 
 	Matrix<double> B (Matrix<double>::Identity(3,3));
 	Matrix<double, 3, 3> res = A * B;
@@ -310,9 +310,9 @@ TEST_CASE ("MultFixedAndDynamic", "[SimpleMath]") {
 TEST_CASE ("HouseholderQRSimple", "[SimpleMath]") {
 	Matrix<double, 3, 3> test_matrix;
 	test_matrix <<
-				1., 2., 3.,
-			4., 4., 6.,
-			8., 9., 7.;
+			1., 2., 3.,
+			4., 5., 6.,
+			7., 8., 4.;
 
 	Matrix<double, 3, 1> x;
 	x[0] = 1.;
@@ -324,7 +324,17 @@ TEST_CASE ("HouseholderQRSimple", "[SimpleMath]") {
 	HouseholderQR<Matrix<double, 3, 3>, double, 3, 3> qr = test_matrix.householderQr();
 	Matrix<double, 3, 1> x_qr = qr.solve(rhs);
 
-	std::cout << "rhs = " << x_qr.transpose() << std::endl;
+	Matrix<double, 3, 3> Q = qr.householderQ();
+	Matrix<double, 3, 3> R = qr.matrixR();
+
+	std::cout << "Q = " << endl << Q << endl;
+	std::cout << "R = " << endl << R << endl;
+	std::cout << "QR = " << endl << Q * R << endl;
+
+	std::cout << "Q * Q.T" << endl << Q * Q.transpose() << endl;
+	std::cout << "rhs = " << rhs << std::endl;
+	std::cout << "rhs (solve)= " << x_qr.transpose() << std::endl;
+
 
 	CHECK_ARRAY_CLOSE (x.data(), x_qr.data(), 3, 1.0e-14);
 }
