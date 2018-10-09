@@ -239,6 +239,8 @@ TEST_CASE ("SimpleMatrixCommaInitializer", "[SimpleMath]") {
 			REQUIRE ((mat_dynamic(i,j)) == (mat_fixed_comma_initializer(i,j)));
 }
 
+ */
+
 TEST_CASE ("SimpleMathConstTranspose", "[SimpleMath]") {
 	Matrix<double> mat_dynamic(3,3);
 
@@ -288,9 +290,7 @@ TEST_CASE ("SimpleMathUnifiedFixedDynamic", "[SimpleMath]") {
     cout << sizeof(Matrix<float>) << endl;
 }
 
-*/
-
-TEST_CASE ("HouseholderQRSimple", "[SimpleMath]") {
+TEST_CASE ("MultFixedAndDynamic", "[SimpleMath]") {
 	Matrix<double, 3, 3> A;
 	A <<
 				1., 2., 3.,
@@ -298,14 +298,33 @@ TEST_CASE ("HouseholderQRSimple", "[SimpleMath]") {
 			8., 9., 7.;
 
 	Matrix<double> B (Matrix<double>::Identity(3,3));
-
-	cout << "B = " << endl << B << endl;
-
 	Matrix<double, 3, 3> res = A * B;
 
-	cout << "size of res: " << res.rows() << ", " << res.cols() << endl;
-
-	cout << "res = " << endl << res << endl;
-
 	CHECK_ARRAY_CLOSE (A.data(), res.data(), 9, 1.0e-14);
+
+    Matrix<double> res2 = B * A;
+    CHECK_ARRAY_CLOSE (A.data(), res2.data(), 9, 1.0e-14);
+}
+
+
+TEST_CASE ("HouseholderQRSimple", "[SimpleMath]") {
+	Matrix<double, 3, 3> test_matrix;
+	test_matrix <<
+				1., 2., 3.,
+			4., 4., 6.,
+			8., 9., 7.;
+
+	Matrix<double, 3, 1> x;
+	x[0] = 1.;
+	x[1] = 2.;
+	x[2] = 3.;
+
+	Matrix<double, 3, 1> rhs  = test_matrix * x;
+
+	HouseholderQR<Matrix<double, 3, 3>, double, 3, 3> qr = test_matrix.householderQr();
+	Matrix<double, 3, 1> x_qr = qr.solve(rhs);
+
+	std::cout << "rhs = " << x_qr.transpose() << std::endl;
+
+	CHECK_ARRAY_CLOSE (x.data(), x_qr.data(), 3, 1.0e-14);
 }

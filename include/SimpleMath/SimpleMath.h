@@ -131,8 +131,7 @@ struct MatrixBase {
 
   template <typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
   Matrix<ScalarType, Rows, OtherCols> operator*(const MatrixBase<OtherDerived, OtherScalarType, OtherRows, OtherCols>& other) const {
-      Matrix<ScalarType, Rows, OtherCols> result;
-      result.mStorage.resize(rows(), other.cols());
+      Matrix<ScalarType, Rows, OtherCols> result (Matrix<ScalarType, Rows, OtherCols>::Zero(rows(), other.cols()));
 
 		unsigned int i,j,k;
 		for (i = 0; i < rows(); i++) {
@@ -142,6 +141,7 @@ struct MatrixBase {
 				}
 			}
 		}
+
 		return result;
 	}
 
@@ -333,7 +333,7 @@ struct MatrixBase {
 	//
 	// Special Constructors
 	//
-	static Derived Zero(int NumRows = Rows, int NumCols = Cols) {
+	static Derived Zero(int NumRows = 1, int NumCols = 1) {
 		Derived result (NumRows, NumCols);
 
 		for (size_t i = 0; i < NumRows; i++) {
