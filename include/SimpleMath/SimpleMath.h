@@ -35,8 +35,8 @@ typedef Matrix<float, 3, 1> Vector3f;
 template <typename Derived, typename ScalarType, int NumRows, int NumCols>
 class HouseholderQR;
 
-//template <typename Derived>
-//class ColPivHouseholderQR;
+template <typename Derived, typename ScalarType, int NumRows, int NumCols>
+class ColPivHouseholderQR;
 
 
 //
@@ -129,21 +129,22 @@ struct MatrixBase {
 		return result;
 	}
 
-  template <typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
-  Matrix<ScalarType, Rows, OtherCols> operator*(const MatrixBase<OtherDerived, OtherScalarType, OtherRows, OtherCols>& other) const {
-      Matrix<ScalarType, Rows, OtherCols> result (Matrix<ScalarType, Rows, OtherCols>::Zero(rows(), other.cols()));
+    template<typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
+    Matrix<ScalarType, Rows, OtherCols>
+    operator*(const MatrixBase<OtherDerived, OtherScalarType, OtherRows, OtherCols> &other) const {
+        Matrix<ScalarType, Rows, OtherCols> result(Matrix<ScalarType, Rows, OtherCols>::Zero(rows(), other.cols()));
 
-		unsigned int i,j,k;
-		for (i = 0; i < rows(); i++) {
-			for (j = 0; j < other.cols(); j++) {
-				for (k = 0; k < other.rows(); k++) {
-					result (i,j) += operator()(i,k) * other(k,j);
-				}
-			}
-		}
+        unsigned int i, j, k;
+        for (i = 0; i < rows(); i++) {
+            for (j = 0; j < other.cols(); j++) {
+                for (k = 0; k < other.rows(); k++) {
+                    result(i, j) += operator()(i, k) * other(k, j);
+                }
+            }
+        }
 
-		return result;
-	}
+        return result;
+    }
 
 	template <typename OtherDerived>
 	Derived operator*=(const OtherDerived& other) {
@@ -306,21 +307,17 @@ struct MatrixBase {
         return result;
 	}
 
-	/*
-    Derived inverse() const {
-        return colPivHouseholderQr().inverse();
-    }
-    */
+//    Derived inverse() const {
+//  return colPivHouseholderQr().inverse();
+//    }
 
     const HouseholderQR<Derived, ScalarType, Rows, Cols> householderQr() const {
         return HouseholderQR<Derived, ScalarType, Rows, Cols>(*this);
     }
 
-    /*
-    const ColPivHouseholderQR<Derived> colPivHouseholderQr() const {
-        return ColPivHouseholderQR<Derived>(*this);
+    const ColPivHouseholderQR<Derived, ScalarType, Rows, Cols> colPivHouseholderQr() const {
+        return ColPivHouseholderQR<Derived, ScalarType, Rows, Cols>(*this);
     }
-    */
 
 	ScalarType* data() {
 		return static_cast<Derived*>(this)->data();
@@ -937,16 +934,27 @@ struct Block : public MatrixBase<Block<Derived, ScalarType, NumRows, NumCols>, S
 		col_index(other.col_index)
 	{ }
 
-	template <typename OtherDerived>
-	Derived& operator=(const OtherDerived& other) {
+	Block& operator=(const Block &other) {
 		unsigned int i,j;
 		for (i = 0; i < rows(); i++) {
 			for (j = 0; j < cols(); j++) {
 				this->operator()(i,j) = other(i,j);
 			}
 		}
-		
-		return *mBlockSource;
+
+		return *this;
+	}
+
+	template <typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
+	Block& operator=(const MatrixBase<OtherDerived, OtherScalarType, OtherRows, OtherCols>& other) {
+		unsigned int i,j;
+		for (i = 0; i < rows(); i++) {
+			for (j = 0; j < cols(); j++) {
+				this->operator()(i,j) = other(i,j);
+			}
+		}
+
+		return *this;
 	}
 
 	template <typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
@@ -1008,320 +1016,333 @@ struct Block : public MatrixBase<Block<Derived, ScalarType, NumRows, NumCols>, S
 //
 // QR Decomposition
 //
-    template <typename Derived, typename ScalarType, int NumRows, int NumCols>
-    class HouseholderQR {
-    public:
-        typedef MatrixBase<Derived, ScalarType, NumRows, NumCols> MatrixType;
-        typedef typename MatrixType::value_type value_type;
+template <typename Derived, typename ScalarType, int NumRows, int NumCols>
+class HouseholderQR {
+public:
+    typedef MatrixBase<Derived, ScalarType, NumRows, NumCols> MatrixType;
+    typedef typename MatrixType::value_type value_type;
 
-        HouseholderQR() :
-                mIsFactorized(false)
-        {}
+    HouseholderQR() :
+            mIsFactorized(false)
+    {}
 
-    private:
-        typedef Matrix<value_type> VectorXd;
-        typedef Matrix<value_type> MatrixXXd;
+private:
+    typedef Matrix<value_type> VectorXd;
+    typedef Matrix<value_type> MatrixXXd;
+	typedef Matrix<ScalarType, NumRows, 1> ColumnVector;
 
-        bool mIsFactorized;
-        Matrix<ScalarType, NumRows, NumRows> mQ;
-        Derived mR;
+    bool mIsFactorized;
+    Matrix<ScalarType, NumRows, NumRows> mQ;
+    Derived mR;
 
-    public:
-        HouseholderQR(const MatrixType &matrix) :
-                mIsFactorized(false),
-                mQ(matrix.rows(), matrix.rows())
-        {
-            compute(matrix);
-        }
-        HouseholderQR compute(const MatrixType &matrix) {
-            mR = matrix;
-            mQ = MatrixType::Identity (mR.rows(), mR.rows());
+public:
+    HouseholderQR(const MatrixType &matrix) :
+            mIsFactorized(false),
+            mQ(matrix.rows(), matrix.rows())
+    {
+        compute(matrix);
+    }
+    HouseholderQR compute(const MatrixType &matrix) {
+        mR = matrix;
+        mQ = MatrixType::Identity (mR.rows(), mR.rows());
 
-            for (unsigned int i = 0; i < mR.cols(); i++) {
-                unsigned int block_rows = mR.rows() - i;
-                unsigned int block_cols = mR.cols() - i;
+        for (unsigned int i = 0; i < mR.cols(); i++) {
+            unsigned int block_rows = mR.rows() - i;
+            unsigned int block_cols = mR.cols() - i;
 
-                MatrixXXd current_block = mR.block(i,i, block_rows, block_cols);
-                VectorXd column = current_block.block(0, 0, block_rows, 1);
+            MatrixXXd current_block = mR.block(i,i, block_rows, block_cols);
+            VectorXd column = current_block.block(0, 0, block_rows, 1);
 
-                value_type alpha = - column.norm();
-                if (current_block(0,0) < 0) {
-                    alpha = - alpha;
-                }
-
-                VectorXd v = current_block.block(0, 0, block_rows, 1);
-                v[0] = v[0] - alpha;
-
-                MatrixXXd Q (MatrixXXd::Identity(mR.rows(), mR.rows()));
-
-                Q.block(i, i, block_rows, block_rows) = MatrixXXd (Q.block(i, i, block_rows, block_rows))
-                                                        - MatrixXXd(v * v.transpose() / (v.squaredNorm() * 0.5));
-
-                mR = Q * mR;
-
-                // Normalize so that we have positive diagonal elements
-                if (mR(i,i) < 0) {
-                    mR.block(i,i,block_rows, block_cols) = MatrixXXd(mR.block(i,i,block_rows, block_cols)) * -1.;
-                    Q.block(i,i,block_rows, block_rows) = MatrixXXd(Q.block(i,i,block_rows, block_rows)) * -1.;
-                }
-
-                mQ = mQ * Q;
+            value_type alpha = - column.norm();
+            if (current_block(0,0) < 0) {
+                alpha = - alpha;
             }
 
-            mIsFactorized = true;
+            VectorXd v = current_block.block(0, 0, block_rows, 1);
+            v[0] = v[0] - alpha;
 
-            return *this;
-        }
-        Matrix<value_type> solve (
-                const Matrix<value_type, NumRows, 1> &rhs
-        ) const {
-            assert (mIsFactorized);
+            MatrixXXd Q (MatrixXXd::Identity(mR.rows(), mR.rows()));
 
-            VectorXd y = mQ.transpose() * rhs;
-            VectorXd x = VectorXd::Zero(mR.cols());
+            Q.block(i, i, block_rows, block_rows) = MatrixXXd (Q.block(i, i, block_rows, block_rows))
+                                                    - MatrixXXd(v * v.transpose() / (v.squaredNorm() * 0.5));
 
-            int ncols = mR.cols();
-            for (int i = ncols - 1; i >= 0; i--) {
-                value_type z = y[i];
+            mR = Q * mR;
 
-                for (unsigned int j = i + 1; j < ncols; j++) {
-                    z = z - x[j] * mR(i,j);
-                }
-
-                if (fabs(mR(i,i)) < std::numeric_limits<value_type>::epsilon() * 10) {
-                    std::cerr << "HouseholderQR: Cannot back-substitute as diagonal element is near zero!" << std::endl;
-                    abort();
-                }
-                x[i] = z / mR(i,i);
+            // Normalize so that we have positive diagonal elements
+            if (mR(i,i) < 0) {
+                mR.block(i,i,block_rows, block_cols) = MatrixXXd(mR.block(i,i,block_rows, block_cols)) * -1.;
+                Q.block(i,i,block_rows, block_rows) = MatrixXXd(Q.block(i,i,block_rows, block_rows)) * -1.;
             }
 
-            return x;
+            mQ = mQ * Q;
         }
-        Matrix<value_type> inverse() const {
-            assert (mIsFactorized);
 
-            VectorXd rhs_temp = VectorXd::Zero(mQ.cols());
-            MatrixXXd result (mQ.cols(), mQ.cols());
+        mIsFactorized = true;
 
-            for (unsigned int i = 0; i < mQ.cols(); i++) {
-                rhs_temp[i] = 1.;
+        return *this;
+    }
+	ColumnVector solve (
+            const ColumnVector &rhs
+    ) const {
+        assert (mIsFactorized);
 
-                result.block(0, i, mQ.cols(), 1) = solve(rhs_temp);
+		ColumnVector y = mQ.transpose() * rhs;
+		ColumnVector x = ColumnVector::Zero(mR.cols());
 
-                rhs_temp[i] = 0.;
+        int ncols = mR.cols();
+        for (int i = ncols - 1; i >= 0; i--) {
+            value_type z = y[i];
+
+            for (unsigned int j = i + 1; j < ncols; j++) {
+                z = z - x[j] * mR(i,j);
             }
 
-            return result;
+            if (fabs(mR(i,i)) < std::numeric_limits<value_type>::epsilon() * 10) {
+                std::cerr << "HouseholderQR: Cannot back-substitute as diagonal element is near zero!" << std::endl;
+                abort();
+            }
+            x[i] = z / mR(i,i);
         }
-        Matrix<value_type> householderQ () const {
-            return mQ;
-        }
-        Matrix<value_type> matrixR () const {
-            return mR;
-        }
-    };
 
-    /*
-template <typename matrix_type>
+        return x;
+    }
+    Derived inverse() const {
+        assert (mIsFactorized);
+
+        VectorXd rhs_temp = VectorXd::Zero(mQ.cols());
+        MatrixXXd result (mQ.cols(), mQ.cols());
+
+        for (unsigned int i = 0; i < mQ.cols(); i++) {
+            rhs_temp[i] = 1.;
+
+            result.block(0, i, mQ.cols(), 1) = solve(rhs_temp);
+
+            rhs_temp[i] = 0.;
+        }
+
+        return result;
+    }
+    Matrix<value_type> householderQ () const {
+        return mQ;
+    }
+    Derived matrixR () const {
+        return mR;
+    }
+};
+
+template <typename Derived, typename ScalarType, int NumRows, int NumCols>
 class ColPivHouseholderQR {
-    public:
-        typedef typename matrix_type::value_type value_type;
-    private:
-        typedef Dynamic<value_type> MatrixXXd;
-        typedef Dynamic<value_type> VectorXd;
+public:
+    typedef MatrixBase<Derived, ScalarType, NumRows, NumCols> MatrixType;
+    typedef typename MatrixType::value_type value_type;
 
-        bool mIsFactorized;
-        MatrixXXd mQ;
-        MatrixXXd mR;
-        unsigned int *mPermutations;
-        value_type mThreshold;
-        unsigned int mRank;
 
-    public:
-        ColPivHouseholderQR():
-                mIsFactorized(false) {
-            mPermutations = new unsigned int[1];
-        }
+private:
+    typedef Matrix<value_type> VectorXd;
+    typedef Matrix<value_type> MatrixXXd;
+	typedef Matrix<ScalarType, NumRows, 1> ColumnVector;
 
-        ColPivHouseholderQR (const ColPivHouseholderQR& other) {
+    bool mIsFactorized;
+    Matrix<ScalarType, NumRows, NumRows> mQ;
+    Derived mR;
+
+    unsigned int *mPermutations;
+    value_type mThreshold;
+    unsigned int mRank;
+
+public:
+    ColPivHouseholderQR():
+        mIsFactorized(false) {
+        mPermutations = new unsigned int[1];
+    }
+
+    ColPivHouseholderQR (const ColPivHouseholderQR& other) {
+        mIsFactorized = other.mIsFactorized;
+        mQ = other.mQ;
+        mR = other.mR;
+        mPermutations = new unsigned int[mQ.cols()];
+        mThreshold = other.mThreshold;
+        mRank = other.mRank;
+    }
+
+    ColPivHouseholderQR& operator= (const ColPivHouseholderQR& other) {
+        if (this != &other) {
             mIsFactorized = other.mIsFactorized;
             mQ = other.mQ;
             mR = other.mR;
+            delete[] mPermutations;
             mPermutations = new unsigned int[mQ.cols()];
             mThreshold = other.mThreshold;
             mRank = other.mRank;
         }
 
-        ColPivHouseholderQR& operator= (const ColPivHouseholderQR& other) {
-            if (this != &other) {
-                mIsFactorized = other.mIsFactorized;
-                mQ = other.mQ;
-                mR = other.mR;
-                delete[] mPermutations;
-                mPermutations = new unsigned int[mQ.cols()];
-                mThreshold = other.mThreshold;
-                mRank = other.mRank;
+        return *this;
+    }
+
+    ColPivHouseholderQR(const MatrixType &matrix) :
+            mIsFactorized(false),
+            mQ(matrix.rows(), matrix.rows()),
+            mThreshold (std::numeric_limits<value_type>::epsilon() * matrix.cols()) {
+        mPermutations = new unsigned int [matrix.cols()];
+        for (unsigned int i = 0; i < matrix.cols(); i++) {
+            mPermutations[i] = i;
+        }
+        compute(matrix);
+    }
+    ~ColPivHouseholderQR() {
+        delete[] mPermutations;
+    }
+
+    ColPivHouseholderQR& setThreshold (const value_type& threshold) {
+        mThreshold = threshold;
+
+        return *this;
+    }
+    ColPivHouseholderQR& compute(const MatrixType &matrix) {
+        mR = matrix;
+        mQ = MatrixType::Identity (mR.rows(), mR.rows());
+
+        for (unsigned int i = 0; i < mR.cols(); i++) {
+            unsigned int block_rows = mR.rows() - i;
+            unsigned int block_cols = mR.cols() - i;
+
+            // find and swap the column with the highest norm
+            unsigned int col_index_norm_max = i;
+            value_type col_norm_max = VectorXd(mR.block(i,i, block_rows, 1)).squaredNorm();
+
+            std::cout << "mR pre = " << std::endl << mR << std::endl;
+
+            for (unsigned int j = i + 1; j < mR.cols(); j++) {
+                VectorXd column = mR.block(i, j, block_rows, 1);
+
+                if (column.squaredNorm() > col_norm_max) {
+                    col_index_norm_max = j;
+                    col_norm_max = column.squaredNorm();
+                    std::cout << "Found higher column: " << j << std::endl;
+                }
             }
 
-            return *this;
-        }
-
-        ColPivHouseholderQR(const matrix_type &matrix) :
-                mIsFactorized(false),
-                mQ(matrix.rows(), matrix.rows()),
-                mThreshold (std::numeric_limits<value_type>::epsilon() * matrix.cols()) {
-            mPermutations = new unsigned int [matrix.cols()];
-            for (unsigned int i = 0; i < matrix.cols(); i++) {
-                mPermutations[i] = i;
-            }
-            compute(matrix);
-        }
-        ~ColPivHouseholderQR() {
-            delete[] mPermutations;
-        }
-
-        ColPivHouseholderQR& setThreshold (const value_type& threshold) {
-            mThreshold = threshold;
-
-            return *this;
-        }
-        ColPivHouseholderQR& compute(const matrix_type &matrix) {
-            mR = matrix;
-            mQ = Dynamic<value_type>::Identity (mR.rows(), mR.rows());
-
-            for (unsigned int i = 0; i < mR.cols(); i++) {
-                unsigned int block_rows = mR.rows() - i;
-                unsigned int block_cols = mR.cols() - i;
-
-                // find and swap the column with the highest norm
-                unsigned int col_index_norm_max = i;
-                value_type col_norm_max = VectorXd(mR.block(i,i, block_rows, 1)).squaredNorm();
-
-                for (unsigned int j = i + 1; j < mR.cols(); j++) {
-                    VectorXd column = mR.block(i, j, block_rows, 1);
-
-                    if (column.squaredNorm() > col_norm_max) {
-                        col_index_norm_max = j;
-                        col_norm_max = column.squaredNorm();
-                    }
-                }
-
-                if (col_norm_max < mThreshold) {
-                    // if all entries of the column is close to zero, we bail out
-                    break;
-                }
-
-
-                if (col_index_norm_max != i) {
-                    VectorXd temp_col = mR.block(0, i, mR.rows(), 1);
-                    mR.block(0,i,mR.rows(),1) = mR.block(0, col_index_norm_max, mR.rows(), 1);
-                    mR.block(0, col_index_norm_max, mR.rows(), 1) = temp_col;
-
-                    unsigned int temp_index = mPermutations[i];
-                    mPermutations[i] = mPermutations[col_index_norm_max];
-                    mPermutations[col_index_norm_max] = temp_index;
-                }
-
-                MatrixXXd current_block = mR.block(i,i, block_rows, block_cols);
-                VectorXd column = current_block.block(0, 0, block_rows, 1);
-
-                value_type alpha = - column.norm();
-                if (current_block(0,0) < 0) {
-                    alpha = - alpha;
-                }
-
-                VectorXd v = current_block.block(0, 0, block_rows, 1);
-                v[0] = v[0] - alpha;
-
-                MatrixXXd Q (MatrixXXd::Identity(mR.rows(), mR.rows()));
-
-                Q.block(i, i, block_rows, block_rows) = MatrixXXd (Q.block(i, i, block_rows, block_rows))
-                                                        - MatrixXXd(v * v.transpose() / (v.squaredNorm() * static_cast<value_type>(0.5)));
-
-                mR = Q * mR;
-
-                // Normalize so that we have positive diagonal elements
-                if (mR(i,i) < 0) {
-                    mR.block(i,i,block_rows, block_cols) = MatrixXXd(mR.block(i,i,block_rows, block_cols)) * -1.;
-                    Q.block(i,i,block_rows, block_rows) = MatrixXXd(Q.block(i,i,block_rows, block_rows)) * -1.;
-                }
-
-                mQ = mQ * Q;
+            if (col_norm_max < mThreshold) {
+                // if all entries of the column is close to zero, we bail out
+                break;
             }
 
-            mIsFactorized = true;
 
-            return *this;
-        }
-        Dynamic<value_type> solve (
-                const Dynamic<value_type> &rhs
-        ) const {
-            assert (mIsFactorized);
+            if (col_index_norm_max != i) {
+                VectorXd temp_col = mR.block(0, i, mR.rows(), 1);
+                mR.block(0, i, mR.rows(), 1) = mR.block(0, col_index_norm_max, mR.rows(), 1);;
+                mR.block(0, col_index_norm_max, mR.rows(), 1) = temp_col;
 
-            VectorXd y = mQ.transpose() * rhs;
-            VectorXd x = VectorXd::Zero(mR.cols());
-
-            for (int i = mR.cols() - 1; i >= 0; --i) {
-                value_type z = y[i];
-
-                for (unsigned int j = i + 1; j < mR.cols(); j++) {
-                    z = z - x[mPermutations[j]] * mR(i,j);
-                }
-
-                if (fabs(mR(i,i)) < std::numeric_limits<value_type>::epsilon() * 10) {
-                    std::cerr << "HouseholderQR: Cannot back-substitute as diagonal element is near zero!" << std::endl;
-                    abort();
-                }
-                x[mPermutations[i]] = z / mR(i,i);
+                unsigned int temp_index = mPermutations[i];
+                mPermutations[i] = mPermutations[col_index_norm_max];
+                mPermutations[col_index_norm_max] = temp_index;
             }
 
-            return x;
-        }
-        Dynamic<value_type> inverse() const {
-            assert (mIsFactorized);
+			std::cout << "mR post = " << std::endl << mR << std::endl;
 
-            VectorXd rhs_temp = VectorXd::Zero(mQ.cols());
-            MatrixXXd result (mQ.cols(), mQ.cols());
+			MatrixXXd current_block = mR.block(i,i, block_rows, block_cols);
+            VectorXd column = current_block.block(0, 0, block_rows, 1);
 
-            for (unsigned int i = 0; i < mQ.cols(); i++) {
-                rhs_temp[i] = 1.;
-
-                result.block(0, i, mQ.cols(), 1) = solve(rhs_temp);
-
-                rhs_temp[i] = 0.;
+            value_type alpha = - column.norm();
+            if (current_block(0,0) < 0) {
+                alpha = - alpha;
             }
 
-            return result;
-        }
+            VectorXd v = current_block.block(0, 0, block_rows, 1);
+            v[0] = v[0] - alpha;
 
-        Dynamic<value_type> householderQ () const {
-            return mQ;
-        }
-        Dynamic<value_type> matrixR () const {
-            return mR;
-        }
-        Dynamic<value_type> matrixP () const {
-            MatrixXXd P = MatrixXXd::Identity(mR.cols(), mR.cols());
-            MatrixXXd identity = MatrixXXd::Identity(mR.cols(), mR.cols());
-            for (unsigned int i = 0; i < mR.cols(); i++) {
-                P.block(0,i,mR.cols(),1) = identity.block(0,mPermutations[i], mR.cols(), 1);
-            }
-            return P;
-        }
+            MatrixXXd Q (MatrixXXd::Identity(mR.rows(), mR.rows()));
 
-        unsigned int rank() const {
-            value_type abs_threshold = fabs(mR(0,0)) * mThreshold;
+            Q.block(i, i, block_rows, block_rows) = MatrixXXd (Q.block(i, i, block_rows, block_rows))
+                                                    - MatrixXXd(v * v.transpose() / (v.squaredNorm() * static_cast<value_type>(0.5)));
 
-            for (unsigned int i = 1; i < mR.cols(); i++) {
-                if (fabs(mR(i,i)) < abs_threshold)
-                    return i;
+            mR = Q * mR;
+
+            // Normalize so that we have positive diagonal elements
+            if (mR(i,i) < 0) {
+                mR.block(i,i,block_rows, block_cols) = MatrixXXd(mR.block(i,i,block_rows, block_cols)) * -1.;
+                Q.block(i,i,block_rows, block_rows) = MatrixXXd(Q.block(i,i,block_rows, block_rows)) * -1.;
             }
 
-            return mR.cols();
+            mQ = mQ * Q;
         }
-    };
 
+        mIsFactorized = true;
 
+        return *this;
+    }
+	ColumnVector solve (
+            const ColumnVector &rhs
+    ) const {
+        assert (mIsFactorized);
+
+		ColumnVector y = mQ.transpose() * rhs;
+		ColumnVector x = ColumnVector::Zero(mR.cols());
+
+		std::cout << "rhs = " << rhs.transpose() << std::endl;
+		std::cout << "y = " << y.transpose() << std::endl;
+
+        for (int i = mR.cols() - 1; i >= 0; --i) {
+            value_type z = y[i];
+
+            for (unsigned int j = i + 1; j < mR.cols(); j++) {
+                z = z - x[mPermutations[j]] * mR(i,j);
+            }
+
+            if (fabs(mR(i,i)) < std::numeric_limits<value_type>::epsilon() * 10) {
+                std::cerr << "HouseholderQR: Cannot back-substitute as diagonal element is near zero!" << std::endl;
+                abort();
+            }
+            x[mPermutations[i]] = z / mR(i,i);
+        }
+
+        return x;
+    }
+    Derived inverse() const {
+        assert (mIsFactorized);
+
+        VectorXd rhs_temp = VectorXd::Zero(mQ.cols());
+        MatrixType result (mQ.cols(), mQ.cols());
+
+        for (unsigned int i = 0; i < mQ.cols(); i++) {
+            rhs_temp[i] = 1.;
+
+            result.block(0, i, mQ.cols(), 1) = solve(rhs_temp);
+
+            rhs_temp[i] = 0.;
+        }
+
+        return result;
+    }
+
+    Matrix<value_type> householderQ () const {
+        return mQ;
+    }
+    Derived matrixR () const {
+        return mR;
+    }
+    Matrix<value_type> matrixP () const {
+        MatrixXXd P = MatrixXXd::Identity(mR.cols(), mR.cols());
+        MatrixXXd identity = MatrixXXd::Identity(mR.cols(), mR.cols());
+        for (unsigned int i = 0; i < mR.cols(); i++) {
+            P.block(0,i,mR.cols(),1) = identity.block(0,mPermutations[i], mR.cols(), 1);
+        }
+        return P;
+    }
+
+    unsigned int rank() const {
+        value_type abs_threshold = fabs(mR(0,0)) * mThreshold;
+
+        for (unsigned int i = 1; i < mR.cols(); i++) {
+            if (fabs(mR(i,i)) < abs_threshold)
+                return i;
+        }
+
+        return mR.cols();
+    }
+};
+
+/*
 //
 // OpenGL Matrices and Quaternions
 //

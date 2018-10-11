@@ -123,6 +123,25 @@ TEST_CASE ("SimpleMatrixBlock", "[SimpleMath]") {
 	cout << mat_dynamic.block<2,2>(1,1) + mat_fixed.block<2,2>(1,1) << endl;
 }
 
+TEST_CASE ("SwapColumns", "[SimpleMath]") {
+	Matrix<double, 3, 3> A;
+	A <<
+	  1., 2., 3.,
+	  4., 5., 6.,
+	  7., 8., 4.;
+
+	Matrix<double, 3, 3> B;
+	B <<
+	  2., 1., 3.,
+      5., 4., 6.,
+	  8., 7., 4.;
+
+	Matrix<double, 3, 1> column_0 = A.block(0, 0, A.rows(), 1);
+	A.block(0, 0, A.rows(), 1) = A.block(0, 1, A.rows(), 1);
+	A.block(0, 1, A.rows(), 1) = column_0;
+
+	CHECK_ARRAY_CLOSE(B.data(), A.data(), 9, 1.0e-12);
+}
 
 TEST_CASE ("SimpleMatrixTranspose", "[SimpleMath]") {
 	Matrix<double, 6, 6> mat_fixed;
@@ -322,6 +341,63 @@ TEST_CASE ("HouseholderQRSimple", "[SimpleMath]") {
 	Matrix<double, 3, 3> Q = qr.householderQ();
 	Matrix<double, 3, 3> R = qr.matrixR();
     Matrix<double, 3, 1> x_qr = qr.solve(b);
+
+	CHECK_ARRAY_CLOSE (x.data(), x_qr.data(), 3, 1.0e-14);
+}
+
+
+TEST_CASE ("ColPivHouseholderQRSimple", "[SimpleMath]") {
+	Matrix<double, 3, 3> A;
+	A <<
+	  1., 2., 3.,
+	  4., 5., 6.,
+	  7., 8., 4.;
+
+	Matrix<double, 3, 1> x;
+	x[0] = 1.;
+	x[1] = 2.;
+	x[2] = 3.;
+
+	Matrix<double, 3, 1> b  = A * x;
+
+	ColPivHouseholderQR<Matrix<double, 3, 3>, double, 3, 3> qr = A.colPivHouseholderQr();
+	Matrix<double, 3, 3> Q = qr.householderQ();
+	Matrix<double, 3, 3> R = qr.matrixR();
+	Matrix<double, 3, 3> P = qr.matrixP();
+
+	Matrix<double, 3, 1> x_qr = qr.solve(b);
+
+	CHECK_ARRAY_CLOSE (x.data(), x_qr.data(), 3, 1.0e-14);
+}
+
+TEST_CASE ("ColPivHouseholderQRSimpleDynamic", "[SimpleMath]") {
+	Matrix<double> A (3, 3);
+
+	A <<
+	  1., 2., 3.,
+			4., 5., 6.,
+			7., 8., 4.;
+
+	Matrix<double> x (3, 1);
+	x[0] = 1.;
+	x[1] = 2.;
+	x[2] = 3.;
+
+	Matrix<double, 3, 1> b  = A * x;
+
+	ColPivHouseholderQR<Matrix<double>, double, -1, -1> qr = A.colPivHouseholderQr();
+	Matrix<double, 3, 3> Q = qr.householderQ();
+	Matrix<double, 3, 3> R = qr.matrixR();
+	Matrix<double, 3, 3> P = qr.matrixP();
+
+	cout << "Q = " << endl << Q << endl;
+	cout << "R = " << endl << R << endl;
+	cout << "P = " << endl << P << endl;
+
+	cout << "QRPT = " << endl << Q * R * P.transpose() << endl;
+	cout << "QRPT - A = " << endl << Q * R * P.transpose() - A << endl;
+
+	Matrix<double> x_qr = qr.solve(b);
 
 	CHECK_ARRAY_CLOSE (x.data(), x_qr.data(), 3, 1.0e-14);
 }
