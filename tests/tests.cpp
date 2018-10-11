@@ -6,6 +6,8 @@
 using namespace std;
 using namespace SimpleMath;
 
+using Catch::Matchers::WithinULP;
+
 #define CHECK_ARRAY_CLOSE2 ( arr_a, arr_b, length, tol ) \
 	do { \
 		for (size_t array_check_i = 0; array_check_i < length; ++array_check_i) \
@@ -15,14 +17,12 @@ using namespace SimpleMath;
 template <typename ScalarType>
 bool CHECK_ARRAY_CLOSE (const ScalarType* expected, const ScalarType* actual, size_t length, const ScalarType& tol) {
 	for (size_t i = 0; i < length; i++) {
-		cout << "i = " << i << " expected: " << expected[i] << " actual: " << actual[i] << endl;
-		REQUIRE ( fabs(expected[i] - actual[i]) == Approx(0.0).epsilon(tol));
+//		cout << "i = " << i << " expected: " << expected[i] << " actual: " << actual[i] << endl;
+		CHECK ( actual[i] == Approx(expected[i]).epsilon(tol));
 	}
 
 	return true;
 }
-
-/*
 
 TEST_CASE ("Basic SimpleMath works", "[SimpleMath]") {
 	Matrix33f bla (Matrix33f::Identity());
@@ -239,8 +239,6 @@ TEST_CASE ("SimpleMatrixCommaInitializer", "[SimpleMath]") {
 			REQUIRE ((mat_dynamic(i,j)) == (mat_fixed_comma_initializer(i,j)));
 }
 
- */
-
 TEST_CASE ("SimpleMathConstTranspose", "[SimpleMath]") {
 	Matrix<double> mat_dynamic(3,3);
 
@@ -306,10 +304,9 @@ TEST_CASE ("MultFixedAndDynamic", "[SimpleMath]") {
     CHECK_ARRAY_CLOSE (A.data(), res2.data(), 9, 1.0e-14);
 }
 
-
 TEST_CASE ("HouseholderQRSimple", "[SimpleMath]") {
-	Matrix<double, 3, 3> test_matrix;
-	test_matrix <<
+	Matrix<double, 3, 3> A;
+	A <<
 			1., 2., 3.,
 			4., 5., 6.,
 			7., 8., 4.;
@@ -319,22 +316,12 @@ TEST_CASE ("HouseholderQRSimple", "[SimpleMath]") {
 	x[1] = 2.;
 	x[2] = 3.;
 
-	Matrix<double, 3, 1> rhs  = test_matrix * x;
+	Matrix<double, 3, 1> b  = A * x;
 
-	HouseholderQR<Matrix<double, 3, 3>, double, 3, 3> qr = test_matrix.householderQr();
-	Matrix<double, 3, 1> x_qr = qr.solve(rhs);
-
+	HouseholderQR<Matrix<double, 3, 3>, double, 3, 3> qr = A.householderQr();
 	Matrix<double, 3, 3> Q = qr.householderQ();
 	Matrix<double, 3, 3> R = qr.matrixR();
-
-	std::cout << "Q = " << endl << Q << endl;
-	std::cout << "R = " << endl << R << endl;
-	std::cout << "QR = " << endl << Q * R << endl;
-
-	std::cout << "Q * Q.T" << endl << Q * Q.transpose() << endl;
-	std::cout << "rhs = " << rhs << std::endl;
-	std::cout << "rhs (solve)= " << x_qr.transpose() << std::endl;
-
+    Matrix<double, 3, 1> x_qr = qr.solve(b);
 
 	CHECK_ARRAY_CLOSE (x.data(), x_qr.data(), 3, 1.0e-14);
 }

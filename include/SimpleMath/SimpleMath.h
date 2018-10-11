@@ -333,7 +333,7 @@ struct MatrixBase {
 	//
 	// Special Constructors
 	//
-	static Derived Zero(int NumRows = 1, int NumCols = 1) {
+	static Derived Zero(int NumRows = (Rows == Dynamic) ? 1 : Rows, int NumCols = (Cols == Dynamic) ? 1 : Cols) {
 		Derived result (NumRows, NumCols);
 
 		for (size_t i = 0; i < NumRows; i++) {
@@ -456,10 +456,10 @@ struct Storage {
         std::cout << "Fixed sized storage" << std::endl;
     }
 
-		Storage(int rows, int cols) {
-			std::cout << "Fixed sized storage resize from " << NumRows << ", " << NumCols << " to " << rows << ", " << cols << std::endl;
-			resize(rows, cols);
-		}
+	Storage(int rows, int cols) {
+		std::cout << "Fixed sized storage resize from " << NumRows << ", " << NumCols << " to " << rows << ", " << cols << std::endl;
+		resize(rows, cols);
+	}
 
     size_t rows() const { return NumRows; }
 
@@ -583,9 +583,7 @@ struct Matrix : public MatrixBase<Matrix<ScalarType, NumRows, NumCols>, ScalarTy
 		mStorage (
 				SizeAtCompileTime / ColsAtCompileTime,
                 SizeAtCompileTime / RowsAtCompileTime
-				)
-	{
-	}
+		) {}
 
     explicit Matrix(int rows, int cols) :
         mStorage(rows, cols) {}
@@ -1046,8 +1044,6 @@ struct Block : public MatrixBase<Block<Derived, ScalarType, NumRows, NumCols>, S
                 MatrixXXd current_block = mR.block(i,i, block_rows, block_cols);
                 VectorXd column = current_block.block(0, 0, block_rows, 1);
 
-                std::cout << "column " << i << ": " << std::endl << column << std::endl;
-
                 value_type alpha = - column.norm();
                 if (current_block(0,0) < 0) {
                     alpha = - alpha;
@@ -1062,7 +1058,6 @@ struct Block : public MatrixBase<Block<Derived, ScalarType, NumRows, NumCols>, S
                                                         - MatrixXXd(v * v.transpose() / (v.squaredNorm() * 0.5));
 
                 mR = Q * mR;
-                std::cout << "Ri = " << std::endl << mR << std::endl;
 
                 // Normalize so that we have positive diagonal elements
                 if (mR(i,i) < 0) {
@@ -1070,7 +1065,6 @@ struct Block : public MatrixBase<Block<Derived, ScalarType, NumRows, NumCols>, S
                     Q.block(i,i,block_rows, block_rows) = MatrixXXd(Q.block(i,i,block_rows, block_rows)) * -1.;
                 }
 
-                std::cout << "Qi = " << std::endl << mQ << std::endl;
                 mQ = mQ * Q;
             }
 
@@ -1086,13 +1080,11 @@ struct Block : public MatrixBase<Block<Derived, ScalarType, NumRows, NumCols>, S
             VectorXd y = mQ.transpose() * rhs;
             VectorXd x = VectorXd::Zero(mR.cols());
 
-            std::cout << "rhs = " << rhs.transpose() << std::endl;
-            std::cout << "y = " << y.transpose() << std::endl;
-
-            for (int i = mR.cols() - 1; i >= 0; --i) {
+            int ncols = mR.cols();
+            for (int i = ncols - 1; i >= 0; i--) {
                 value_type z = y[i];
 
-                for (unsigned int j = i + 1; j < mR.cols(); j++) {
+                for (unsigned int j = i + 1; j < ncols; j++) {
                     z = z - x[j] * mR(i,j);
                 }
 
