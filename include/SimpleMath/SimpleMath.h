@@ -441,12 +441,9 @@ template <typename ScalarType, int SizeAtCompileTime, int NumRows, int NumCols>
 struct Storage {
     ScalarType mData[SizeAtCompileTime];
 
-    Storage() {
-        std::cout << "Fixed sized storage" << std::endl;
-    }
+    Storage() {}
 
 	Storage(int rows, int cols) {
-		std::cout << "Fixed sized storage resize from " << NumRows << ", " << NumCols << " to " << rows << ", " << cols << std::endl;
 		resize(rows, cols);
 	}
 
@@ -478,12 +475,9 @@ struct Storage<ScalarType, 0, Dynamic, NumCols> {
     int mRows = 0;
     int mCols = 0;
 
-    Storage() {
-        std::cout << "Row vector" << std::endl;
-    }
+    Storage() {}
 
     Storage(int rows, int cols) {
-        std::cout << "Row sized storage resize from " << mRows << ", " << mCols << " to " << rows << ", " << cols << std::endl;
         resize(rows, cols);
     }
 
@@ -521,12 +515,9 @@ struct Storage<ScalarType, 0, Dynamic, Dynamic> {
     int mRows = 0;
     int mCols = 0;
 
-    Storage() {
-        std::cout << "Dynamic sized storage" << std::endl;
-    }
+    Storage() {}
 
     Storage(int rows, int cols) {
-        std::cout << "Dynamic sized storage resize from " << mRows << ", " << mCols << " to " << rows << ", " << cols << std::endl;
         resize(rows, cols);
     }
 
@@ -583,7 +574,6 @@ struct Matrix : public MatrixBase<Matrix<ScalarType, NumRows, NumCols>, ScalarTy
     template <typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
 	Matrix(const MatrixBase<OtherDerived, OtherScalarType, OtherRows, OtherCols>& other) {
 	    mStorage.resize(other.rows(), other.cols());
-		std::cout << "FCC" << std::endl;
 
 		for (size_t i = 0; i < rows(); i++) {
 			for (size_t j = 0; j < cols(); j++) {
@@ -1206,15 +1196,12 @@ public:
             unsigned int col_index_norm_max = i;
             value_type col_norm_max = VectorXd(mR.block(i,i, block_rows, 1)).squaredNorm();
 
-            std::cout << "mR pre = " << std::endl << mR << std::endl;
-
             for (unsigned int j = i + 1; j < mR.cols(); j++) {
                 VectorXd column = mR.block(i, j, block_rows, 1);
 
                 if (column.squaredNorm() > col_norm_max) {
                     col_index_norm_max = j;
                     col_norm_max = column.squaredNorm();
-                    std::cout << "Found higher column: " << j << std::endl;
                 }
             }
 
@@ -1233,8 +1220,6 @@ public:
                 mPermutations[i] = mPermutations[col_index_norm_max];
                 mPermutations[col_index_norm_max] = temp_index;
             }
-
-			std::cout << "mR post = " << std::endl << mR << std::endl;
 
 			MatrixXXd current_block = mR.block(i,i, block_rows, block_cols);
             VectorXd column = current_block.block(0, 0, block_rows, 1);
