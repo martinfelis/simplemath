@@ -1320,16 +1320,17 @@ public:
     }
 };
 
-/*
 //
 // OpenGL Matrices and Quaternions
 //
 
-typedef Fixed<float, 3, 1> Vector3f;
-typedef Fixed<float, 3, 3> Matrix33f;
+namespace GL {
 
-typedef Fixed<float, 4, 1> Vector4f;
-typedef Fixed<float, 4, 4> Matrix44f;
+typedef Matrix<float, 3, 1> Vector3f;
+typedef Matrix<float, 3, 3> Matrix33f;
+
+typedef Matrix<float, 4, 1> Vector4f;
+typedef Matrix<float, 4, 4> Matrix44f;
 
 inline Matrix33f RotateMat33 (float rot_deg, float x, float y, float z) {
 	float c = cosf (rot_deg * M_PI / 180.f);
@@ -1654,7 +1655,9 @@ class Quaternion : public Vector4f {
 			return Vector3f (res_quat[0], res_quat[1], res_quat[2]);
 		}
 };
-*/
+
+} /* namespace GL */
+
 
 //
 // Stream operators
