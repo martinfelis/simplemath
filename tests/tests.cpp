@@ -390,13 +390,6 @@ TEST_CASE ("ColPivHouseholderQRSimpleDynamic", "[SimpleMath]") {
 	Matrix<double, 3, 3> R = qr.matrixR();
 	Matrix<double, 3, 3> P = qr.matrixP();
 
-	cout << "Q = " << endl << Q << endl;
-	cout << "R = " << endl << R << endl;
-	cout << "P = " << endl << P << endl;
-
-	cout << "QRPT = " << endl << Q * R * P.transpose() << endl;
-	cout << "QRPT - A = " << endl << Q * R * P.transpose() - A << endl;
-
 	Matrix<double> x_qr = qr.solve(b);
 
 	CHECK_ARRAY_CLOSE (x.data(), x_qr.data(), 3, 1.0e-14);

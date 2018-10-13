@@ -856,12 +856,16 @@ struct Transpose : public MatrixBase<Transpose<Derived, ScalarType, NumRows, Num
 
   template <typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
   Matrix<ScalarType, NumRows, OtherCols> operator*(const MatrixBase<OtherDerived, OtherScalarType, OtherRows, OtherCols>& other) const {
-		Matrix<ScalarType, NumRows, OtherCols> result (rows(), other.cols());
+		Matrix<ScalarType, NumRows, OtherCols> result (Matrix<ScalarType, NumRows, OtherCols>::Zero(rows(), other.cols()));
 
 		unsigned int i,j,k;
-		for (i = 0; i < rows(); i++) {
-			for (j = 0; j < other.cols(); j++) {
-				for (k = 0; k < other.rows(); k++) {
+		unsigned int nrows = rows();
+		unsigned int other_ncols = other.cols();
+		unsigned int other_nrows = other.rows();
+
+		for (i = 0; i < nrows; i++) {
+			for (j = 0; j < other_ncols; j++) {
+				for (k = 0; k < other_nrows; k++) {
 					result (i,j) += operator()(i,k) * other(k,j);
 				}
 			}
@@ -1278,9 +1282,6 @@ public:
 
 		ColumnVector y = mQ.transpose() * rhs;
 		ColumnVector x = ColumnVector::Zero(mR.cols());
-
-		std::cout << "rhs = " << rhs.transpose() << std::endl;
-		std::cout << "y = " << y.transpose() << std::endl;
 
         for (int i = mR.cols() - 1; i >= 0; --i) {
             value_type z = y[i];
