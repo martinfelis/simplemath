@@ -299,17 +299,9 @@ struct MatrixBase {
 		return result;
 	}
 
-	Derived inverse() const {
-	    assert(false);
-
-	    Derived result(cols(), rows());
-
-        return result;
-	}
-
-//    Derived inverse() const {
-//  return colPivHouseholderQr().inverse();
-//    }
+    Derived inverse() const {
+      return colPivHouseholderQr().inverse();
+    }
 
     const HouseholderQR<Derived, ScalarType, Rows, Cols> householderQr() const {
         return HouseholderQR<Derived, ScalarType, Rows, Cols>(*this);
@@ -1303,7 +1295,7 @@ public:
         assert (mIsFactorized);
 
         VectorXd rhs_temp = VectorXd::Zero(mQ.cols());
-        MatrixType result (mQ.cols(), mQ.cols());
+        Derived result (mQ.cols(), mQ.cols());
 
         for (unsigned int i = 0; i < mQ.cols(); i++) {
             rhs_temp[i] = 1.;

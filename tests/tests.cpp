@@ -18,7 +18,7 @@ template <typename ScalarType>
 bool CHECK_ARRAY_CLOSE (const ScalarType* expected, const ScalarType* actual, size_t length, const ScalarType& tol) {
 	for (size_t i = 0; i < length; i++) {
 //		cout << "i = " << i << " expected: " << expected[i] << " actual: " << actual[i] << endl;
-		CHECK ( actual[i] == Approx(expected[i]).epsilon(tol));
+		CHECK ( actual[i] == Approx(expected[i]).margin(tol));
 	}
 
 	return true;
@@ -393,4 +393,19 @@ TEST_CASE ("ColPivHouseholderQRSimpleDynamic", "[SimpleMath]") {
 	Matrix<double> x_qr = qr.solve(b);
 
 	CHECK_ARRAY_CLOSE (x.data(), x_qr.data(), 3, 1.0e-14);
+}
+
+TEST_CASE ("InverseDynamic", "[SimpleMath]") {
+	Matrix<double> A (3, 3);
+
+	A <<
+	  1., 2., 3.,
+	  4., 5., 6.,
+	  7., 8., 4.;
+
+	Matrix<double> Ainv = A.inverse();
+	Matrix<double, 3, 3> identity = Matrix<double, 3, 3>::Identity();
+	Matrix<double> A_times_Ainv = A * Ainv;
+
+	CHECK_ARRAY_CLOSE (identity.data(), A_times_Ainv.data(), 9, 1.0e-14);
 }
