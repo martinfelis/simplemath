@@ -396,16 +396,17 @@ TEST_CASE ("ColPivHouseholderQRSimpleDynamic", "[SimpleMath]") {
 }
 
 TEST_CASE ("InverseDynamic", "[SimpleMath]") {
-	Matrix<double> A (3, 3);
+	Matrix<float> A (3, 3);
 
 	A <<
 	  1., 2., 3.,
 	  4., 5., 6.,
 	  7., 8., 4.;
 
-	Matrix<double> Ainv = A.inverse();
-	Matrix<double, 3, 3> identity = Matrix<double, 3, 3>::Identity();
-	Matrix<double> A_times_Ainv = A * Ainv;
+	Matrix<float> Ainv = A.inverse();
+	Matrix<float, 3, 3> identity = Matrix<float, 3, 3>::Identity();
+	Matrix<float> A_times_Ainv = A * Ainv;
 
-	CHECK_ARRAY_CLOSE (identity.data(), A_times_Ainv.data(), 9, 1.0e-14);
+	CHECK_ARRAY_CLOSE (identity.data(), A_times_Ainv.data(), 9, 1.0e-5f);
 }
+

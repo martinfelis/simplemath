@@ -163,6 +163,17 @@ struct MatrixBase {
   	return *this;
 	}
 
+	Derived operator*=(const ScalarType& s) {
+		unsigned int i,j;
+		for (i = 0; i < rows(); i++) {
+			for (j = 0; j < cols(); j++) {
+				operator()(i,j) *= s;
+			}
+		}
+
+  	return *this;
+	}
+
 	void set(const ScalarType& v0) {
 		static_assert(cols() * rows() == 1, "Invalid matrix size");
 		data()[0] = v0;
@@ -218,6 +229,12 @@ struct MatrixBase {
 	}
 
 	operator ScalarType() const {
+#ifndef NDEBUG
+		std::cout << "Error trying to cast to scalar type. Dimensions are: "
+			<< static_cast<const Derived*>(this)->rows() << ", "  
+			<< static_cast<const Derived*>(this)->cols() << "."  
+			<< std::endl;
+#endif
 		assert ( static_cast<const Derived*>(this)->cols() == 1
 				&& static_cast<const Derived*>(this)->rows() == 1);
 		return static_cast<const Derived*>(this)->operator()(0,0);
@@ -227,11 +244,11 @@ struct MatrixBase {
 	// Numerical functions
 	//
 
-	// TODO: separate functions for float or double matrices	
-	double dot(const Derived& other) const {
+	// TODO: separate functions for float or ScalarType matrices	
+	ScalarType dot(const Derived& other) const {
 		assert ((rows() == 1 || cols() == 1) && (other.rows() == 1 || other.cols() == 1));
 
-		double result = 0.0;
+		ScalarType result = 0.0;
 
 		size_t n = rows() * cols();
 		for (size_t i = 0; i < n; ++i) {
@@ -241,9 +258,9 @@ struct MatrixBase {
 		return result;
 	}
 
-	// TODO: separate functions for float or double matrices	
-	double squaredNorm() const {
-		double result = 0.0;
+	// TODO: separate functions for float or ScalarType matrices	
+	ScalarType squaredNorm() const {
+		ScalarType result = static_cast<ScalarType>(0.0);
 
 		size_t nr = rows();
 		size_t nc = cols();
@@ -256,34 +273,25 @@ struct MatrixBase {
 		return result;
 	}
 
-	// TODO: separate functions for float or double matrices	
-	double norm() const {
-		return std::sqrt(squaredNorm());
+	// TODO: separate functions for float or ScalarType matrices	
+	ScalarType norm() const {
+		return static_cast<ScalarType>(std::sqrt(squaredNorm()));
 	}
 	
-	// TODO: separate functions for float or double matrices	
+	// TODO: separate functions for float or ScalarType matrices	
 	Derived normalized() const {
-		Derived result (rows(), cols());
+		Derived result (*this);
 
-		double norm = squaredNorm();
-		unsigned int i,j;
-		for (i = 0; i < rows(); i++) {
-			for (j = 0; j < cols(); j++) {
-				result (i,j) = operator()(i,j) / norm;
-			}
-		}
-		return result;
+		ScalarType length = this->norm();
+
+		return result / length;
 	}
 
-	// TODO: separate functions for float or double matrices	
+	// TODO: separate functions for float or ScalarType matrices	
 	Derived normalize() {
-		double norm = squaredNorm();
-		unsigned int i,j;
-		for (i = 0; i < rows(); i++) {
-			for (j = 0; j < cols(); j++) {
-				operator() (i,j) /= norm;
-			}
-		}
+		ScalarType length = norm();
+
+		*this *= static_cast<ScalarType>(1.0) / length;
 
 		return *this;
 	}
@@ -291,7 +299,7 @@ struct MatrixBase {
 	Derived cross(const Derived& other) const {
 		assert(cols() * rows() == 3);
 		
-		Derived result(cols(), rows());
+		Derived result(rows(), cols());
 		result[0] = operator[](1) * other[2] - operator[](2) * other[1];
 		result[1] = operator[](2) * other[0] - operator[](0) * other[2];
 		result[2] = operator[](0) * other[1] - operator[](1) * other[0];
@@ -452,7 +460,14 @@ struct Storage {
     size_t cols() const { return NumCols; }
 
     void resize(int num_rows, int num_cols) {
-            // Resizing of fixed size matrices not allowed
+			// Resizing of fixed size matrices not allowed
+#ifndef NDEBUG
+			if (num_rows != NumRows || num_cols != NumCols) {
+				std::cout << "Error: trying to resize fixed matrix from " 
+					<< NumRows << ", " << NumCols << " to "
+					<< num_rows << ", " << num_cols << "." << std::endl;
+			}
+#endif
 			assert (num_rows == NumRows && num_cols == NumCols);
     }
 
@@ -1066,32 +1081,34 @@ public:
         mIsFactorized = true;
 
         return *this;
-    }
-	ColumnVector solve (
-            const ColumnVector &rhs
-    ) const {
-        assert (mIsFactorized);
+		}
+		ColumnVector solve (
+				const ColumnVector &rhs
+				) const {
+			assert (mIsFactorized);
 
-		ColumnVector y = mQ.transpose() * rhs;
-		ColumnVector x = ColumnVector::Zero(mR.cols());
+			ColumnVector y = mQ.transpose() * rhs;
+			ColumnVector x = ColumnVector::Zero(mR.cols());
 
-        int ncols = mR.cols();
-        for (int i = ncols - 1; i >= 0; i--) {
-            value_type z = y[i];
+			int ncols = mR.cols();
+			for (int i = ncols - 1; i >= 0; i--) {
+				value_type z = y[i];
 
-            for (unsigned int j = i + 1; j < ncols; j++) {
-                z = z - x[j] * mR(i,j);
-            }
+				for (unsigned int j = i + 1; j < ncols; j++) {
+					z = z - x[j] * mR(i,j);
+				}
 
-            if (fabs(mR(i,i)) < std::numeric_limits<value_type>::epsilon() * 10) {
-                std::cerr << "HouseholderQR: Cannot back-substitute as diagonal element is near zero!" << std::endl;
-                abort();
-            }
-            x[i] = z / mR(i,i);
-        }
+				if (fabs(mR(i,i)) < std::numeric_limits<value_type>::epsilon() * 10) {
+					std::cerr << "HouseholderQR: Cannot back-substitute as diagonal element is near zero!" << std::endl;
+					abort();
+				}
+				x[i] = z / mR(i,i);
+			}
 
-        return x;
-    }
+			assert (!std::isnan(x.squaredNorm()));
+
+			return x;
+		}
     Derived inverse() const {
         assert (mIsFactorized);
 
@@ -1184,98 +1201,100 @@ public:
 
         return *this;
     }
-    ColPivHouseholderQR& compute(const MatrixType &matrix) {
-        mR = matrix;
-        mQ = MatrixType::Identity (mR.rows(), mR.rows());
+		ColPivHouseholderQR& compute(const MatrixType &matrix) {
+			mR = matrix;
+			mQ = MatrixType::Identity (mR.rows(), mR.rows());
 
-        for (unsigned int i = 0; i < mR.cols(); i++) {
-            unsigned int block_rows = mR.rows() - i;
-            unsigned int block_cols = mR.cols() - i;
+			for (unsigned int i = 0; i < mR.cols(); i++) {
+				unsigned int block_rows = mR.rows() - i;
+				unsigned int block_cols = mR.cols() - i;
 
-            // find and swap the column with the highest norm
-            unsigned int col_index_norm_max = i;
-            value_type col_norm_max = VectorXd(mR.block(i,i, block_rows, 1)).squaredNorm();
+				// find and swap the column with the highest norm
+				unsigned int col_index_norm_max = i;
+				value_type col_norm_max = VectorXd(mR.block(i,i, block_rows, 1)).squaredNorm();
 
-            for (unsigned int j = i + 1; j < mR.cols(); j++) {
-                VectorXd column = mR.block(i, j, block_rows, 1);
+				for (unsigned int j = i + 1; j < mR.cols(); j++) {
+					VectorXd column = mR.block(i, j, block_rows, 1);
 
-                if (column.squaredNorm() > col_norm_max) {
-                    col_index_norm_max = j;
-                    col_norm_max = column.squaredNorm();
-                }
-            }
+					if (column.squaredNorm() > col_norm_max) {
+						col_index_norm_max = j;
+						col_norm_max = column.squaredNorm();
+					}
+				}
 
-            if (col_norm_max < mThreshold) {
-                // if all entries of the column is close to zero, we bail out
-                break;
-            }
+				if (col_norm_max < mThreshold) {
+					// if all entries of the column is close to zero, we bail out
+					break;
+				}
 
 
-            if (col_index_norm_max != i) {
-                VectorXd temp_col = mR.block(0, i, mR.rows(), 1);
-                mR.block(0, i, mR.rows(), 1) = mR.block(0, col_index_norm_max, mR.rows(), 1);;
-                mR.block(0, col_index_norm_max, mR.rows(), 1) = temp_col;
+				if (col_index_norm_max != i) {
+					VectorXd temp_col = mR.block(0, i, mR.rows(), 1);
+					mR.block(0, i, mR.rows(), 1) = mR.block(0, col_index_norm_max, mR.rows(), 1);;
+					mR.block(0, col_index_norm_max, mR.rows(), 1) = temp_col;
 
-                unsigned int temp_index = mPermutations[i];
-                mPermutations[i] = mPermutations[col_index_norm_max];
-                mPermutations[col_index_norm_max] = temp_index;
-            }
+					unsigned int temp_index = mPermutations[i];
+					mPermutations[i] = mPermutations[col_index_norm_max];
+					mPermutations[col_index_norm_max] = temp_index;
+				}
 
-			MatrixXXd current_block = mR.block(i,i, block_rows, block_cols);
-            VectorXd column = current_block.block(0, 0, block_rows, 1);
+				MatrixXXd current_block = mR.block(i,i, block_rows, block_cols);
+				VectorXd column = current_block.block(0, 0, block_rows, 1);
 
-            value_type alpha = - column.norm();
-            if (current_block(0,0) < 0) {
-                alpha = - alpha;
-            }
+				value_type alpha = - column.norm();
+				if (current_block(0,0) < 0) {
+					alpha = - alpha;
+				}
 
-            VectorXd v = current_block.block(0, 0, block_rows, 1);
-            v[0] = v[0] - alpha;
+				VectorXd v = current_block.block(0, 0, block_rows, 1);
+				v[0] = v[0] - alpha;
 
-            MatrixXXd Q (MatrixXXd::Identity(mR.rows(), mR.rows()));
+				MatrixXXd Q (MatrixXXd::Identity(mR.rows(), mR.rows()));
 
-            Q.block(i, i, block_rows, block_rows) = MatrixXXd (Q.block(i, i, block_rows, block_rows))
-                                                    - MatrixXXd(v * v.transpose() / (v.squaredNorm() * static_cast<value_type>(0.5)));
+				Q.block(i, i, block_rows, block_rows) = MatrixXXd (Q.block(i, i, block_rows, block_rows))
+					- (v * v.transpose()) / (v.squaredNorm() * static_cast<value_type>(0.5));
 
-            mR = Q * mR;
+				mR = Q * mR;
 
-            // Normalize so that we have positive diagonal elements
-            if (mR(i,i) < 0) {
-                mR.block(i,i,block_rows, block_cols) = MatrixXXd(mR.block(i,i,block_rows, block_cols)) * -1.;
-                Q.block(i,i,block_rows, block_rows) = MatrixXXd(Q.block(i,i,block_rows, block_rows)) * -1.;
-            }
+				// Normalize so that we have positive diagonal elements
+				if (mR(i,i) < 0) {
+					mR.block(i,i,block_rows, block_cols) = MatrixXXd(mR.block(i,i,block_rows, block_cols)) * -1.;
+					Q.block(i,i,block_rows, block_rows) = MatrixXXd(Q.block(i,i,block_rows, block_rows)) * -1.;
+				}
 
-            mQ = mQ * Q;
-        }
+				mQ = mQ * Q;
+			}
 
-        mIsFactorized = true;
+			mIsFactorized = true;
 
-        return *this;
-    }
-	ColumnVector solve (
-            const ColumnVector &rhs
-    ) const {
-        assert (mIsFactorized);
+			return *this;
+		}
+		ColumnVector solve (
+				const ColumnVector &rhs
+				) const {
+		assert (mIsFactorized);
 
 		ColumnVector y = mQ.transpose() * rhs;
 		ColumnVector x = ColumnVector::Zero(mR.cols());
 
-        for (int i = mR.cols() - 1; i >= 0; --i) {
-            value_type z = y[i];
+		for (int i = mR.cols() - 1; i >= 0; --i) {
+			value_type z = y[i];
 
-            for (unsigned int j = i + 1; j < mR.cols(); j++) {
-                z = z - x[mPermutations[j]] * mR(i,j);
-            }
+			for (unsigned int j = i + 1; j < mR.cols(); j++) {
+				z = z - x[mPermutations[j]] * mR(i,j);
+			}
 
-            if (fabs(mR(i,i)) < std::numeric_limits<value_type>::epsilon() * 10) {
-                std::cerr << "HouseholderQR: Cannot back-substitute as diagonal element is near zero!" << std::endl;
-                abort();
-            }
-            x[mPermutations[i]] = z / mR(i,i);
-        }
+			if (fabs(mR(i,i)) < std::numeric_limits<value_type>::epsilon() * 10) {
+				std::cerr << "HouseholderQR: Cannot back-substitute as diagonal element is near zero!" << std::endl;
+				abort();
+			}
+			x[mPermutations[i]] = z / mR(i,i);
+		}
 
-        return x;
-    }
+		assert (!std::isnan(x.squaredNorm()));
+
+		return x;
+	}
     Derived inverse() const {
         assert (mIsFactorized);
 
