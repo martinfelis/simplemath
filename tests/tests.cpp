@@ -410,3 +410,13 @@ TEST_CASE ("InverseDynamic", "[SimpleMath]") {
 	CHECK_ARRAY_CLOSE (identity.data(), A_times_Ainv.data(), 9, 1.0e-5f);
 }
 
+TEST_CASE("ScalarMultTranspose", "[SimpleMath]") {
+	Matrix<float, 3, 1> x;
+	Matrix<float, 1, 3> y;
+	x << 1.f, 2.f, 3.f;
+
+	//y = 0.2f * x.transpose();
+cout << 0.2f * x.transpose() << endl;
+//	cout << y << endl;
+}
+

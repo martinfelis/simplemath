@@ -582,6 +582,8 @@ struct Storage<ScalarType, 0, Dynamic, Dynamic> {
 
 template <typename ScalarType, int NumRows, int NumCols>
 struct Matrix : public MatrixBase<Matrix<ScalarType, NumRows, NumCols>, ScalarType, NumRows, NumCols> {
+	typedef Matrix DerivedBase;
+
   enum {
     RowsAtCompileTime = (NumCols == Dynamic || NumRows == Dynamic) ? -1 : NumRows,
     ColsAtCompileTime = (NumCols == Dynamic || NumRows == Dynamic) ? -1 : NumCols,
@@ -998,6 +1000,23 @@ struct Transpose : public MatrixBase<Transpose<Derived, ScalarType, NumRows, Num
 				}
 			}
 		}
+		return result;
+	}
+
+	template <typename OtherScalar>
+	Matrix<ScalarType, NumRows, NumCols> operator*(const OtherScalar& scalar) const {
+		Matrix<ScalarType, NumRows, NumCols> result (rows(), cols());
+
+		unsigned int i,j;
+		int nrows = rows();
+		int ncols = cols();
+
+		for (i = 0; i < nrows; i++) {
+			for (j = 0; j < ncols; j++) {
+				result (i,j) = operator()(i,j) * static_cast<ScalarType>(scalar);
+			}
+		}
+
 		return result;
 	}
 
