@@ -45,7 +45,7 @@ class ColPivHouseholderQR;
 //
 template <typename Derived, typename ScalarType, int Rows, int Cols>
 struct MatrixBase {
-    typedef MatrixBase<Derived, ScalarType, Rows, Cols> MatrixType;
+  typedef MatrixBase<Derived, ScalarType, Rows, Cols> MatrixType;
 	typedef ScalarType value_type;
 	
 	template <typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
@@ -129,27 +129,26 @@ struct MatrixBase {
 		return result;
 	}
 
-    template<typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
-    Matrix<ScalarType, Rows, OtherCols>
-    operator*(const MatrixBase<OtherDerived, OtherScalarType, OtherRows, OtherCols> &other) const {
-        Matrix<ScalarType, Rows, OtherCols> result(Matrix<ScalarType, Rows, OtherCols>::Zero(rows(), other.cols()));
+  template<typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
+  Matrix<ScalarType, Rows, OtherCols>
+  operator*(const MatrixBase<OtherDerived, OtherScalarType, OtherRows, OtherCols> &other) const {
+    Matrix<ScalarType, Rows, OtherCols> result(Matrix<ScalarType, Rows, OtherCols>::Zero(rows(), other.cols()));
 
-        unsigned int i, j, k;
-        for (i = 0; i < rows(); i++) {
-            for (j = 0; j < other.cols(); j++) {
-                for (k = 0; k < other.rows(); k++) {
-                    result(i, j) += operator()(i, k) * other(k, j);
-                }
-            }
+    unsigned int i, j, k;
+    for (i = 0; i < rows(); i++) {
+      for (j = 0; j < other.cols(); j++) {
+        for (k = 0; k < other.rows(); k++) {
+          result(i, j) += operator()(i, k) * other(k, j);
         }
-
-        return result;
+      }
     }
+
+    return result;
+  }
 
 	template <typename OtherDerived>
 	Derived operator*=(const OtherDerived& other) {
-	    Derived copy (*static_cast<Derived*>(this));
-//		Derived result (Derived::Zero(rows(), other.cols()));
+    Derived copy (*static_cast<Derived*>(this));
 
 		unsigned int i,j,k;
 		for (i = 0; i < rows(); i++) {
@@ -162,6 +161,16 @@ struct MatrixBase {
 
   	return *this;
 	}
+
+  Derived operator-() const {
+    Derived copy (*static_cast<const Derived*>(this));
+    for (int i = 0; i < rows(); i++) {
+      for (int j = 0; j < cols(); j++) {
+        copy(i,j) *= static_cast<ScalarType>(-1.);
+      }
+    }
+    return copy;
+  }
 
 	Derived operator*=(const ScalarType& s) {
 		unsigned int i,j;
@@ -205,12 +214,35 @@ struct MatrixBase {
 		data()[3] = v3;
 	}
 
-    size_t rows() const {
-		return static_cast<const Derived*>(this)->rows();
+	void set(
+			const ScalarType& v0,
+			const ScalarType& v1,
+			const ScalarType& v2,
+			const ScalarType& v3,
+			const ScalarType& v4,
+			const ScalarType& v5
+			) {
+		assert(cols() * rows() == 6);
+
+		data()[0] = v0;
+		data()[1] = v1;
+		data()[2] = v2;
+		data()[3] = v3;
+		data()[4] = v4;
+		data()[5] = v5;
 	}
-	size_t cols() const {
-		return static_cast<const Derived*>(this)->cols();
-	}
+
+  size_t rows() const {
+    return static_cast<const Derived*>(this)->rows();
+  }
+
+  size_t cols() const {
+    return static_cast<const Derived*>(this)->cols();
+  }
+
+  size_t size() const {
+    return static_cast<const Derived*>(this)->rows() * static_cast<const Derived*>(this)->cols();
+  }
 
 	const ScalarType& operator()(const size_t& i, const size_t& j) const {
 		return static_cast<const Derived*>(this)->operator()(i,j);
@@ -422,22 +454,6 @@ struct MatrixBase {
 };
 
 
-
-template <typename Derived, typename ScalarType, int Rows, int Cols>
-inline Derived operator*(const ScalarType& scalar, const MatrixBase<Derived, ScalarType, Rows, Cols> &matrix) {
-    return matrix * scalar;
-}
-
-template <typename Derived, typename ScalarType, int Rows, int Cols>
-inline Derived operator*(const MatrixBase<Derived, ScalarType, Rows, Cols> &matrix, const ScalarType& scalar) {
-    return matrix * scalar;
-}
-
-template <typename Derived, typename ScalarType, int Rows, int Cols>
-inline Derived operator/(const MatrixBase<Derived, ScalarType, Rows, Cols> &matrix, const ScalarType& scalar) {
-    return matrix * (1.0 / scalar);
-}
-
 template <typename ScalarType, int SizeAtCompileTime, int NumRows, int NumCols>
 struct Storage;
 
@@ -447,41 +463,41 @@ struct Storage<ScalarType, SizeAtCompileTime, -1, NumCols> : public Storage<Scal
 // fixed storage
 template <typename ScalarType, int SizeAtCompileTime, int NumRows, int NumCols>
 struct Storage {
-    ScalarType mData[SizeAtCompileTime];
+  ScalarType mData[SizeAtCompileTime];
 
-    Storage() {}
+  Storage() {}
 
-	Storage(int rows, int cols) {
-		resize(rows, cols);
-	}
+  Storage(int rows, int cols) {
+    resize(rows, cols);
+  }
 
-    size_t rows() const { return NumRows; }
+  size_t rows() const { return NumRows; }
 
-    size_t cols() const { return NumCols; }
+  size_t cols() const { return NumCols; }
 
-    void resize(int num_rows, int num_cols) {
-			// Resizing of fixed size matrices not allowed
+  void resize(int num_rows, int num_cols) {
+    // Resizing of fixed size matrices not allowed
 #ifndef NDEBUG
-			if (num_rows != NumRows || num_cols != NumCols) {
-				std::cout << "Error: trying to resize fixed matrix from " 
-					<< NumRows << ", " << NumCols << " to "
-					<< num_rows << ", " << num_cols << "." << std::endl;
-			}
+    if (num_rows != NumRows || num_cols != NumCols) {
+      std::cout << "Error: trying to resize fixed matrix from " 
+        << NumRows << ", " << NumCols << " to "
+        << num_rows << ", " << num_cols << "." << std::endl;
+    }
 #endif
-			assert (num_rows == NumRows && num_cols == NumCols);
-    }
+    assert (num_rows == NumRows && num_cols == NumCols);
+  }
 
-    ScalarType& coeff(int row_index, int col_index) {
-        assert (row_index >= 0 && row_index <= NumRows);
-        assert (col_index >= 0 && col_index <= NumCols);
-        return mData[row_index * NumCols + col_index];
-    }
+  ScalarType& coeff(int row_index, int col_index) {
+    assert (row_index >= 0 && row_index <= NumRows);
+    assert (col_index >= 0 && col_index <= NumCols);
+    return mData[row_index * NumCols + col_index];
+  }
 
-    const ScalarType& coeff(int row_index, int col_index) const {
-        assert (row_index >= 0 && row_index <= NumRows);
-        assert (col_index >= 0 && col_index <= NumCols);
-        return mData[row_index * NumCols + col_index];
-    }
+  const ScalarType& coeff(int row_index, int col_index) const {
+    assert (row_index >= 0 && row_index <= NumRows);
+    assert (col_index >= 0 && col_index <= NumCols);
+    return mData[row_index * NumCols + col_index];
+  }
 };
 
 template <typename ScalarType, int NumCols>
@@ -565,203 +581,318 @@ struct Storage<ScalarType, 0, Dynamic, Dynamic> {
 
 
 template <typename ScalarType, int NumRows, int NumCols>
-struct Matrix : public MatrixBase<Matrix<ScalarType, NumRows, NumCols>, ScalarType, NumRows, NumCols>{
-	enum {
-		RowsAtCompileTime = (NumCols == Dynamic || NumRows == Dynamic) ? -1 : NumRows,
-		ColsAtCompileTime = (NumCols == Dynamic || NumRows == Dynamic) ? -1 : NumCols,
-		SizeAtCompileTime = (NumRows != Dynamic && NumCols != Dynamic) ? NumRows * NumCols : 0
-	};
+struct Matrix : public MatrixBase<Matrix<ScalarType, NumRows, NumCols>, ScalarType, NumRows, NumCols> {
+  enum {
+    RowsAtCompileTime = (NumCols == Dynamic || NumRows == Dynamic) ? -1 : NumRows,
+    ColsAtCompileTime = (NumCols == Dynamic || NumRows == Dynamic) ? -1 : NumCols,
+    SizeAtCompileTime = (NumRows != Dynamic && NumCols != Dynamic) ? NumRows * NumCols : 0
+  };
 
-    Storage<ScalarType, SizeAtCompileTime, RowsAtCompileTime, ColsAtCompileTime> mStorage;
+  Storage<ScalarType, SizeAtCompileTime, RowsAtCompileTime, ColsAtCompileTime> mStorage;
 
-	Matrix() :
-		mStorage (
-				SizeAtCompileTime / ColsAtCompileTime,
-                SizeAtCompileTime / RowsAtCompileTime
-		) {}
+  Matrix() :
+    mStorage (
+        SizeAtCompileTime / ColsAtCompileTime,
+        SizeAtCompileTime / RowsAtCompileTime
+        ) {}
 
-    explicit Matrix(int rows, int cols) :
-        mStorage(rows, cols) {}
+  explicit Matrix(int rows, int cols) :
+    mStorage(rows, cols) {}
 
-    explicit Matrix (size_t rows, size_t cols) :
-        mStorage(rows, cols) {}
+  explicit Matrix(unsigned int rows, unsigned int cols) :
+    mStorage(rows, cols) {}
 
-    template <typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
-	Matrix(const MatrixBase<OtherDerived, OtherScalarType, OtherRows, OtherCols>& other) {
-	    mStorage.resize(other.rows(), other.cols());
+  explicit Matrix (size_t rows, size_t cols) :
+    mStorage(rows, cols) {}
 
-		for (size_t i = 0; i < rows(); i++) {
-			for (size_t j = 0; j < cols(); j++) {
-				this->operator()(i,j) = other(i,j);
-			}
-		}
-	}
+  template <typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
+    Matrix(const MatrixBase<OtherDerived, OtherScalarType, OtherRows, OtherCols>& other) {
+      mStorage.resize(other.rows(), other.cols());
 
-    //
-    // Constructor for vectors
-    //
-
-    Matrix (
-            const ScalarType& v0
-    ) {
-        static_assert (NumRows * NumCols == 1, "Invalid matrix size");
-
-        operator()(0,0) = v0;
+      for (size_t i = 0; i < rows(); i++) {
+        for (size_t j = 0; j < cols(); j++) {
+          this->operator()(i,j) = other(i,j);
+        }
+      }
     }
 
-    Matrix (
-            const ScalarType& v0,
-            const ScalarType& v1
-    ) {
-        static_assert (NumRows * NumCols == 2, "Invalid matrix size");
+  //
+  // Constructor for vectors
+  //
+  Matrix (
+      const ScalarType& v0
+      ) {
+    static_assert (NumRows * NumCols == 1, "Invalid matrix size");
 
-        operator()(0,0) = v0;
-        operator()(1,0) = v1;
+    operator()(0,0) = v0;
+  }
+
+  Matrix (
+      const ScalarType& v0,
+      const ScalarType& v1
+      ) {
+    static_assert (NumRows * NumCols == 2, "Invalid matrix size");
+
+    operator()(0,0) = v0;
+    operator()(1,0) = v1;
+  }
+
+  Matrix (
+      const ScalarType& v0,
+      const ScalarType& v1,
+      const ScalarType& v2
+      ) {
+    static_assert (NumRows * NumCols == 3, "Invalid matrix size");
+
+    operator()(0,0) = v0;
+    operator()(1,0) = v1;
+    operator()(2,0) = v2;
+  }
+
+  Matrix (
+      const ScalarType& v0,
+      const ScalarType& v1,
+      const ScalarType& v2,
+      const ScalarType& v3
+      ) {
+    static_assert (NumRows * NumCols == 4, "Invalid matrix size");
+
+    operator()(0,0) = v0;
+    operator()(1,0) = v1;
+    operator()(2,0) = v2;
+    operator()(3,0) = v3;
+  }
+
+  Matrix (
+      const ScalarType& v0,
+      const ScalarType& v1,
+      const ScalarType& v2,
+      const ScalarType& v3,
+      const ScalarType& v4,
+      const ScalarType& v5
+      ) {
+    static_assert (NumRows * NumCols == 6, "Invalid matrix size");
+
+    operator()(0,0) = v0;
+    operator()(1,0) = v1;
+    operator()(2,0) = v2;
+    operator()(3,0) = v3;
+    operator()(4,0) = v4;
+    operator()(5,0) = v5;
+  }
+
+  //
+  // Constructor for matrices
+  //
+  Matrix (
+      const ScalarType& v00,
+      const ScalarType& v01,
+      const ScalarType& v02,
+      const ScalarType& v10,
+      const ScalarType& v11,
+      const ScalarType& v12,
+      const ScalarType& v20,
+      const ScalarType& v21,
+      const ScalarType& v22
+      ) {
+    static_assert (NumRows == 3 && NumCols == 3, "Invalid matrix size");
+
+    operator()(0,0) = v00;
+    operator()(0,1) = v01;
+    operator()(0,2) = v02;
+
+    operator()(1,0) = v10;
+    operator()(1,1) = v11;
+    operator()(1,2) = v12;
+
+    operator()(2,0) = v20;
+    operator()(2,1) = v21;
+    operator()(2,2) = v22;
+  }
+
+  Matrix (
+      const ScalarType& v00,
+      const ScalarType& v01,
+      const ScalarType& v02,
+      const ScalarType& v03,
+      const ScalarType& v10,
+      const ScalarType& v11,
+      const ScalarType& v12,
+      const ScalarType& v13,
+      const ScalarType& v20,
+      const ScalarType& v21,
+      const ScalarType& v22,
+      const ScalarType& v23,
+      const ScalarType& v30,
+      const ScalarType& v31,
+      const ScalarType& v32,
+      const ScalarType& v33
+      ) {
+    static_assert (NumRows == 4 && NumCols == 4, "Invalid matrix size");
+
+    operator()(0,0) = v00;
+    operator()(0,1) = v01;
+    operator()(0,2) = v02;
+    operator()(0,3) = v03;
+
+    operator()(1,0) = v10;
+    operator()(1,1) = v11;
+    operator()(1,2) = v12;
+    operator()(1,3) = v13;
+
+    operator()(2,0) = v20;
+    operator()(2,1) = v21;
+    operator()(2,2) = v22;
+    operator()(2,3) = v23;
+
+    operator()(3,0) = v30;
+    operator()(3,1) = v31;
+    operator()(3,2) = v32;
+    operator()(3,3) = v33;
+  }
+
+  Matrix (
+      const ScalarType& v00,
+      const ScalarType& v01,
+      const ScalarType& v02,
+      const ScalarType& v03,
+      const ScalarType& v04,
+      const ScalarType& v05,
+
+      const ScalarType& v10,
+      const ScalarType& v11,
+      const ScalarType& v12,
+      const ScalarType& v13,
+      const ScalarType& v14,
+      const ScalarType& v15,
+
+      const ScalarType& v20,
+      const ScalarType& v21,
+      const ScalarType& v22,
+      const ScalarType& v23,
+      const ScalarType& v24,
+      const ScalarType& v25,
+
+      const ScalarType& v30,
+      const ScalarType& v31,
+      const ScalarType& v32,
+      const ScalarType& v33,
+      const ScalarType& v34,
+      const ScalarType& v35,
+
+      const ScalarType& v40,
+      const ScalarType& v41,
+      const ScalarType& v42,
+      const ScalarType& v43,
+      const ScalarType& v44,
+      const ScalarType& v45,
+
+      const ScalarType& v50,
+      const ScalarType& v51,
+      const ScalarType& v52,
+      const ScalarType& v53,
+      const ScalarType& v54,
+      const ScalarType& v55
+        ) {
+          static_assert (NumRows == 6 && NumCols == 6, "Invalid matrix size");
+
+          operator()(0,0) = v00;
+          operator()(0,1) = v01;
+          operator()(0,2) = v02;
+          operator()(0,3) = v03;
+          operator()(0,4) = v04;
+          operator()(0,5) = v05;
+
+          operator()(1,0) = v10;
+          operator()(1,1) = v11;
+          operator()(1,2) = v12;
+          operator()(1,3) = v13;
+          operator()(1,4) = v14;
+          operator()(1,5) = v15;
+
+          operator()(2,0) = v20;
+          operator()(2,1) = v21;
+          operator()(2,2) = v22;
+          operator()(2,3) = v23;
+          operator()(2,4) = v24;
+          operator()(2,5) = v25;
+
+          operator()(3,0) = v30;
+          operator()(3,1) = v31;
+          operator()(3,2) = v32;
+          operator()(3,3) = v33;
+          operator()(3,4) = v34;
+          operator()(3,5) = v35;
+
+          operator()(5,0) = v50;
+          operator()(5,1) = v51;
+          operator()(5,2) = v52;
+          operator()(5,3) = v53;
+          operator()(5,4) = v54;
+          operator()(5,5) = v55;
+
+          operator()(3,0) = v30;
+          operator()(3,1) = v31;
+          operator()(3,2) = v32;
+          operator()(3,3) = v33;
+          operator()(3,4) = v34;
+          operator()(3,5) = v35;
+
+          operator()(5,0) = v50;
+          operator()(5,1) = v51;
+          operator()(5,2) = v52;
+          operator()(5,3) = v53;
+          operator()(5,4) = v54;
+          operator()(5,5) = v55;
+        }
+
+  template <typename OtherDerived>
+    Matrix& operator+=(const OtherDerived& other) {
+      assert (NumRows == other.rows() && NumCols == other.cols() && "Error: matrix dimensions do not match!");
+
+      for (size_t i = 0; i < rows(); i++) {
+        for (size_t j = 0; j < cols(); j++) {
+          this->operator()(i,j) += other(i,j);
+        }
+      }
+      return *this;
     }
 
-    Matrix (
-            const ScalarType& v0,
-            const ScalarType& v1,
-            const ScalarType& v2
-    ) {
-        static_assert (NumRows * NumCols == 3, "Invalid matrix size");
+  template <typename OtherDerived>
+    Matrix& operator-=(const OtherDerived& other) {
+      assert (rows() == other.rows() && cols() == other.cols() && "Error: matrix dimensions do not match!");
 
-        operator()(0,0) = v0;
-        operator()(1,0) = v1;
-        operator()(2,0) = v2;
+      for (size_t i = 0; i < rows(); i++) {
+        for (size_t j = 0; j < cols(); j++) {
+          this->operator()(i,j) -= other(i,j);
+        }
+      }
+      return *this;
     }
 
-    Matrix (
-            const ScalarType& v0,
-            const ScalarType& v1,
-            const ScalarType& v2,
-            const ScalarType& v3
-    ) {
-        static_assert (NumRows * NumCols == 4, "Invalid matrix size");
+  ScalarType& operator()(const size_t& i, const size_t& j) {
+    return mStorage.coeff(i, j);
+  }
 
-        operator()(0,0) = v0;
-        operator()(1,0) = v1;
-        operator()(2,0) = v2;
-        operator()(3,0) = v3;
-    }
+  ScalarType* data() {
+    return mStorage.mData;
+  }
 
-    //
-    // Constructor for matrices
-    //
-    Matrix (
-            const ScalarType& v00,
-            const ScalarType& v01,
-            const ScalarType& v02,
-            const ScalarType& v10,
-            const ScalarType& v11,
-            const ScalarType& v12,
-            const ScalarType& v20,
-            const ScalarType& v21,
-            const ScalarType& v22
-    ) {
-        static_assert (NumRows == 3 && NumCols == 3, "Invalid matrix size");
+  const ScalarType* data() const {
+    return mStorage.mData;
+  }
 
-        operator()(0,0) = v00;
-        operator()(0,1) = v01;
-        operator()(0,2) = v02;
+  const ScalarType& operator()(const size_t& i, const size_t& j) const {
+    return mStorage.coeff(i, j);
+  }
 
-        operator()(1,0) = v10;
-        operator()(1,1) = v11;
-        operator()(1,2) = v12;
+  size_t cols() const {
+    return mStorage.cols();
+  }
 
-        operator()(2,0) = v20;
-        operator()(2,1) = v21;
-        operator()(2,2) = v22;
-    }
-
-    Matrix (
-            const ScalarType& v00,
-            const ScalarType& v01,
-            const ScalarType& v02,
-            const ScalarType& v03,
-            const ScalarType& v10,
-            const ScalarType& v11,
-            const ScalarType& v12,
-            const ScalarType& v13,
-            const ScalarType& v20,
-            const ScalarType& v21,
-            const ScalarType& v22,
-            const ScalarType& v23,
-            const ScalarType& v30,
-            const ScalarType& v31,
-            const ScalarType& v32,
-            const ScalarType& v33
-    ) {
-        static_assert (NumRows == 4 && NumCols == 4, "Invalid matrix size");
-
-        operator()(0,0) = v00;
-        operator()(0,1) = v01;
-        operator()(0,2) = v02;
-        operator()(0,3) = v03;
-
-        operator()(1,0) = v10;
-        operator()(1,1) = v11;
-        operator()(1,2) = v12;
-        operator()(1,3) = v13;
-
-        operator()(2,0) = v20;
-        operator()(2,1) = v21;
-        operator()(2,2) = v22;
-        operator()(2,3) = v23;
-
-        operator()(3,0) = v30;
-        operator()(3,1) = v31;
-        operator()(3,2) = v32;
-        operator()(3,3) = v33;
-    }
-
-    template <typename OtherDerived>
-	Matrix& operator+=(const OtherDerived& other) {
-		assert (NumRows == other.rows() && NumCols == other.cols() && "Error: matrix dimensions do not match!");
-
-		for (size_t i = 0; i < rows(); i++) {
-			for (size_t j = 0; j < cols(); j++) {
-				this->operator()(i,j) += other(i,j);
-			}
-		}
-		return *this;
-	}
-
-	template <typename OtherDerived>
-	Matrix& operator-=(const OtherDerived& other) {
-		assert (rows() == other.rows() && cols() == other.cols() && "Error: matrix dimensions do not match!");
-
-		for (size_t i = 0; i < rows(); i++) {
-			for (size_t j = 0; j < cols(); j++) {
-				this->operator()(i,j) -= other(i,j);
-			}
-		}
-		return *this;
-	}
-
-	ScalarType& operator()(const size_t& i, const size_t& j) {
-		return mStorage.coeff(i, j);
-	}
-
-	ScalarType* data() {
-        return mStorage.mData;
-	}
-
-	const ScalarType* data() const {
-        return mStorage.mData;
-	}
-
-	const ScalarType& operator()(const size_t& i, const size_t& j) const {
-	    return mStorage.coeff(i, j);
-	}
-
-	size_t cols() const {
-	    return mStorage.cols();
-	}
-
-	size_t rows() const {
-	    return mStorage.rows();
-	}
+  size_t rows() const {
+    return mStorage.rows();
+  }
 };
 	
 
@@ -957,6 +1088,17 @@ struct Block : public MatrixBase<Block<Derived, ScalarType, NumRows, NumCols>, S
 
 		return *this;
 	}
+
+//  template <typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
+//	Matrix<ScalarType, NumRows, OtherCols>& operator=(const MatrixBase<OtherDerived, OtherScalarType, OtherRows, OtherCols>& other) {
+//		unsigned int i,j,k;
+//		for (i = 0; i < rows(); i++) {
+//			for (j = 0; j < other.cols(); j++) {
+//				operator()(i,k) = other(k,j);
+//			}
+//		}
+//		return *this;
+//	}
 
 	template <typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
 	Matrix<ScalarType, NumRows, OtherCols> operator*(const MatrixBase<OtherDerived, OtherScalarType, OtherRows, OtherCols>& other) const {
@@ -1338,6 +1480,21 @@ public:
         return mR.cols();
     }
 };
+
+template <typename Derived, typename ScalarType, int Rows, int Cols>
+inline Derived operator*(const ScalarType& scalar, const MatrixBase<Derived, ScalarType, Rows, Cols> &matrix) {
+    return matrix * scalar;
+}
+
+template <typename Derived, typename ScalarType, int Rows, int Cols>
+inline Derived operator*(const MatrixBase<Derived, ScalarType, Rows, Cols> &matrix, const ScalarType& scalar) {
+    return matrix * scalar;
+}
+
+template <typename Derived, typename ScalarType, int Rows, int Cols>
+inline Derived operator/(const MatrixBase<Derived, ScalarType, Rows, Cols> &matrix, const ScalarType& scalar) {
+    return matrix * (1.0 / scalar);
+}
 
 //
 // OpenGL Matrices and Quaternions
