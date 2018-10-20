@@ -64,8 +64,8 @@ struct MatrixBase {
 	//
 	// operators with scalars
 	//
-	Derived operator*(const double& scalar) const {
-		Derived result (rows(), cols());
+	Matrix<ScalarType, Rows, Cols> operator*(const double& scalar) const {
+		Matrix<ScalarType, Rows, Cols> result (rows(), cols());
 
 		unsigned int i,j;
 		for (i = 0; i < rows(); i++) {
@@ -76,8 +76,8 @@ struct MatrixBase {
 		return result;
 	}
 
-	Derived operator*(const float& scalar) const {
-		Derived result (rows(), cols());
+	Matrix<ScalarType, Rows, Cols> operator*(const float& scalar) const {
+		Matrix<ScalarType, Rows, Cols> result (rows(), cols());
 
 		unsigned int i,j;
 		for (i = 0; i < rows(); i++) {
@@ -1003,23 +1003,6 @@ struct Transpose : public MatrixBase<Transpose<Derived, ScalarType, NumRows, Num
 		return result;
 	}
 
-	template <typename OtherScalar>
-	Matrix<ScalarType, NumRows, NumCols> operator*(const OtherScalar& scalar) const {
-		Matrix<ScalarType, NumRows, NumCols> result (rows(), cols());
-
-		unsigned int i,j;
-		int nrows = rows();
-		int ncols = cols();
-
-		for (i = 0; i < nrows; i++) {
-			for (j = 0; j < ncols; j++) {
-				result (i,j) = operator()(i,j) * static_cast<ScalarType>(scalar);
-			}
-		}
-
-		return result;
-	}
-
 	template <typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
 	Transpose& operator=(const MatrixBase<OtherDerived, OtherScalarType, OtherRows, OtherCols>& other) {
 		if (static_cast<const void*>(this) != static_cast<const void*>(&other)) {
@@ -1501,17 +1484,17 @@ public:
 };
 
 template <typename Derived, typename ScalarType, int Rows, int Cols>
-inline Derived operator*(const ScalarType& scalar, const MatrixBase<Derived, ScalarType, Rows, Cols> &matrix) {
+inline Matrix<ScalarType, Rows, Cols> operator*(const ScalarType& scalar, const MatrixBase<Derived, ScalarType, Rows, Cols> &matrix) {
     return matrix * scalar;
 }
 
 template <typename Derived, typename ScalarType, int Rows, int Cols>
-inline Derived operator*(const MatrixBase<Derived, ScalarType, Rows, Cols> &matrix, const ScalarType& scalar) {
+inline Matrix<ScalarType, Rows, Cols> operator*(const MatrixBase<Derived, ScalarType, Rows, Cols> &matrix, const ScalarType& scalar) {
     return matrix * scalar;
 }
 
 template <typename Derived, typename ScalarType, int Rows, int Cols>
-inline Derived operator/(const MatrixBase<Derived, ScalarType, Rows, Cols> &matrix, const ScalarType& scalar) {
+inline Matrix<ScalarType, Rows, Cols> operator/(const MatrixBase<Derived, ScalarType, Rows, Cols> &matrix, const ScalarType& scalar) {
     return matrix * (1.0 / scalar);
 }
 

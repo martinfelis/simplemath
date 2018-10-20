@@ -415,8 +415,7 @@ TEST_CASE("ScalarMultTranspose", "[SimpleMath]") {
 	Matrix<float, 1, 3> y;
 	x << 1.f, 2.f, 3.f;
 
-	//y = 0.2f * x.transpose();
-cout << 0.2f * x.transpose() << endl;
-//	cout << y << endl;
+	cout << 2.0f * x.transpose() << endl;
+	cout << x.transpose() * x << endl;
 }
 
