@@ -198,25 +198,31 @@ struct MatrixBase {
 
   void resize(unsigned int nrows, unsigned int ncols = 1) {
     static_assert(Rows == Dynamic);
-    Matrix<ScalarType> result = Matrix<ScalarType>(nrows, ncols);
 
-    *this = result;
+    // Resize the this matrix (so far only possible for subclasses of the
+    // Matrix class)
+    Matrix<ScalarType, Rows, Cols>* this_matrix = static_cast<Matrix<ScalarType, Rows, Cols>*>(this);
+    this_matrix->mStorage.resize(nrows, ncols);
   }
 
   void conservativeResize(unsigned int nrows, unsigned int ncols = 1) {
     static_assert(Rows == Dynamic);
-    Matrix<ScalarType> result = Matrix<ScalarType>::Zero(nrows, ncols);
+
+
+    Derived copy(*this);
 
     unsigned int arows = std::min(nrows, (unsigned int) rows());
     unsigned int acols = std::min(ncols, (unsigned int) cols());
 
+    resize(nrows, ncols);
+    setZero();
+
+    // TODO: set entries to zero within the loop
     for (unsigned int i = 0; i < arows; i++) {
       for (unsigned int j = 0; j < acols; j++) {
-        result(i, j) = (*this)(i,j);
+        this->operator()(i, j) = copy(i,j);
       }
     }
-
-    *this = result;
   }
 
 	void setZero() {
