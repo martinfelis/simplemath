@@ -419,3 +419,38 @@ TEST_CASE("ScalarMultTranspose", "[SimpleMath]") {
 	cout << x.transpose() * x << endl;
 }
 
+
+TEST_CASE("SpatialMatrix_Multiplication", "[SimpleMath]") {
+	typedef Matrix<double, 6, 6> Matrix66d;
+ 	Matrix66d X_1 (
+      1.,  2.,  3.,  4.,  5.,  6.,
+      11., 12., 13., 14., 15., 16.,
+      21., 22., 23., 24., 25., 26.,
+      31., 32., 33., 34., 35., 36.,
+      41., 42., 43., 44., 45., 46.,
+      51., 52., 53., 54., 55., 56.
+      );
+
+  Matrix66d X_2 (X_1);
+
+  X_2 *= 2.0;
+
+  Matrix66d correct_result (
+      1442,    1484,    1526,    1568,    1610,    1652,
+      4562,    4724,    4886,    5048,    5210,    5372,
+      7682,    7964,    8246,    8528,    8810,    9092,
+      10802,   11204,   11606,   12008,   12410,   12812,
+      13922,   14444,   14966,   15488,   16010,   16532,
+      17042,   17684,   18326,   18968,   19610,   20252
+      );
+
+  Matrix66d test_result = X_1 * X_2;
+
+  CHECK_ARRAY_CLOSE (correct_result.data(), test_result.data(), 6 * 6, 1.0e-12);
+
+  // check the *= operator:
+  test_result = X_1;
+  test_result *= X_2;
+
+  CHECK_ARRAY_CLOSE (correct_result.data(), test_result.data(), 6 * 6, 1.0e-12);
+}

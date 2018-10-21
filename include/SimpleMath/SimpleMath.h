@@ -148,17 +148,12 @@ struct MatrixBase {
 
 	template <typename OtherDerived>
 	Derived operator*=(const OtherDerived& other) {
-    Derived copy (*static_cast<Derived*>(this));
-
-		unsigned int i,j,k;
-		for (i = 0; i < rows(); i++) {
-			for (j = 0; j < other.cols(); j++) {
-				for (k = 0; k < other.rows(); k++) {
-					operator()(i,j) += copy.operator()(i,k) * other(k,j);
-				}
-			}
-		}
-
+    Derived copy = *this;
+	
+		std::cout << "baeng" << std::endl;
+		std::cout << copy * other << std::endl;
+		*this = copy * other;
+		std::cout << *this << std::endl;
   	return *this;
 	}
 
@@ -181,6 +176,39 @@ struct MatrixBase {
 		}
 
   	return *this;
+	}
+
+  void resize(unsigned int nrows, unsigned int ncols = 1) {
+    static_assert(Rows == Dynamic);
+    Matrix<ScalarType> result = Matrix<ScalarType>(nrows, ncols);
+
+    *this = result;
+  }
+
+  void conservativeResize(unsigned int nrows, unsigned int ncols = 1) {
+    static_assert(Rows == Dynamic);
+    Matrix<ScalarType> result = Matrix<ScalarType>::Zero(nrows, ncols);
+
+    unsigned int arows = std::min(nrows, (unsigned int) rows());
+    unsigned int acols = std::min(ncols, (unsigned int) cols());
+
+    for (unsigned int i = 0; i < arows; i++) {
+      for (unsigned int j = 0; j < acols; j++) {
+        result(i, j) = (*this)(i,j);
+      }
+    }
+
+    *this = result;
+  }
+
+	void setZero() {
+    int nrows = rows();
+    int ncols = cols();
+    for (int i = 0; i < nrows; i++) {
+      for (int j = 0; j < ncols; j++) {
+        operator()(i,j) = static_cast<ScalarType>(0.0);
+      }
+    }
 	}
 
 	void set(const ScalarType& v0) {
@@ -343,6 +371,24 @@ struct MatrixBase {
       return colPivHouseholderQr().inverse();
     }
 
+    ScalarType trace() const {
+      assert(rows() == cols());
+
+      ScalarType result = static_cast<ScalarType>(0.0);
+
+      for (unsigned int i = 0; i < rows(); i++) {
+        result += operator()(i,i);
+      }
+
+      return result;
+    }
+
+    // TODO: implement Cholesky decompositioe
+    const HouseholderQR<Derived, ScalarType, Rows, Cols> llt() const {
+			std::cerr << "LLT decomposition uses householder!" << std::endl;
+        return HouseholderQR<Derived, ScalarType, Rows, Cols>(*this);
+    }
+
     const HouseholderQR<Derived, ScalarType, Rows, Cols> householderQr() const {
         return HouseholderQR<Derived, ScalarType, Rows, Cols>(*this);
     }
@@ -384,7 +430,40 @@ struct MatrixBase {
 		return result;
 	}
 
-	// TODO: Random()
+	static Derived Constant(int NumRows, const ScalarType &value) {
+		Derived result (NumRows, 1);
+
+    for (size_t i = 0; i < NumRows; i++) {
+      result(i,0) = value;
+    }
+
+		return result;
+	}
+
+	static Derived Constant(int NumRows, int NumCols, const ScalarType &value) {
+		Derived result (NumRows, NumCols);
+
+		for (size_t i = 0; i < NumRows; i++) {
+			for (size_t j = 0; j < NumCols; j++) {
+				result(i,j) = value;
+			}
+		}
+
+		return result;
+	}
+
+	static Derived Random(int NumRows = (Rows == Dynamic) ? 1 : Rows, int NumCols = (Cols == Dynamic) ? 1 : Cols) {
+		Derived result (NumRows, NumCols);
+
+		for (size_t i = 0; i < NumRows; i++) {
+			for (size_t j = 0; j < NumCols; j++) {
+        result(i,j) = (static_cast<value_type>(rand()) / static_cast<value_type>(RAND_MAX)) * 2.0 - 1.0;
+			}
+		}
+
+		return result;
+	}
+
 
 	//
 	// Block accessors
@@ -430,7 +509,7 @@ struct MatrixBase {
 	}
 
 	const Block<
-		Derived,
+		const Derived,
 		ScalarType
 		> block(int block_row_index, int block_col_index,
 				int block_num_rows, int block_num_cols) const {
@@ -826,19 +905,12 @@ struct Matrix : public MatrixBase<Matrix<ScalarType, NumRows, NumCols>, ScalarTy
           operator()(3,4) = v34;
           operator()(3,5) = v35;
 
-          operator()(5,0) = v50;
-          operator()(5,1) = v51;
-          operator()(5,2) = v52;
-          operator()(5,3) = v53;
-          operator()(5,4) = v54;
-          operator()(5,5) = v55;
-
-          operator()(3,0) = v30;
-          operator()(3,1) = v31;
-          operator()(3,2) = v32;
-          operator()(3,3) = v33;
-          operator()(3,4) = v34;
-          operator()(3,5) = v35;
+          operator()(4,0) = v40;
+          operator()(4,1) = v41;
+          operator()(4,2) = v42;
+          operator()(4,3) = v43;
+          operator()(4,4) = v44;
+          operator()(4,5) = v45;
 
           operator()(5,0) = v50;
           operator()(5,1) = v51;
@@ -1181,13 +1253,13 @@ private:
     Derived mR;
 
 public:
-    HouseholderQR(const MatrixType &matrix) :
+    HouseholderQR(const Derived &matrix) :
             mIsFactorized(false),
             mQ(matrix.rows(), matrix.rows())
     {
         compute(matrix);
     }
-    HouseholderQR compute(const MatrixType &matrix) {
+    HouseholderQR compute(const Derived& matrix) {
         mR = matrix;
         mQ = MatrixType::Identity (mR.rows(), mR.rows());
 
@@ -1496,6 +1568,11 @@ inline Matrix<ScalarType, Rows, Cols> operator*(const MatrixBase<Derived, Scalar
 template <typename Derived, typename ScalarType, int Rows, int Cols>
 inline Matrix<ScalarType, Rows, Cols> operator/(const MatrixBase<Derived, ScalarType, Rows, Cols> &matrix, const ScalarType& scalar) {
     return matrix * (1.0 / scalar);
+}
+
+template <typename Derived, typename ScalarType, int Rows, int Cols>
+inline Matrix<ScalarType, Rows, Cols> operator/=(MatrixBase<Derived, ScalarType, Rows, Cols> &matrix, const ScalarType& scalar) {
+    return matrix *= (1.0 / scalar);
 }
 
 //
