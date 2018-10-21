@@ -47,7 +47,20 @@ template <typename Derived, typename ScalarType, int Rows, int Cols>
 struct MatrixBase {
   typedef MatrixBase<Derived, ScalarType, Rows, Cols> MatrixType;
 	typedef ScalarType value_type;
-	
+
+	Derived& operator=(const Derived& other) {
+		if (static_cast<const void*>(this) != static_cast<const void*>(&other)) {
+			for (size_t i = 0; i < other.rows(); i++) {
+				for (size_t j = 0; j < other.cols(); j++) {
+					this->operator()(i,j) = other(i,j);
+				}
+			}
+		}
+
+		return *this;
+	}
+
+
 	template <typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
 	Derived& operator=(const MatrixBase<OtherDerived, OtherScalarType, OtherRows, OtherCols>& other) {
 		if (static_cast<const void*>(this) != static_cast<const void*>(&other)) {
@@ -147,14 +160,19 @@ struct MatrixBase {
   }
 
 	template <typename OtherDerived>
-	Derived operator*=(const OtherDerived& other) {
-    Derived copy = *this;
-	
-		std::cout << "baeng" << std::endl;
-		std::cout << copy * other << std::endl;
-		*this = copy * other;
-		std::cout << *this << std::endl;
-  	return *this;
+	Derived operator*=(const OtherDerived &other) {
+		Derived copy (*static_cast<const Derived*>(this));
+		this->setZero();
+
+		unsigned int i, j, k;
+		for (i = 0; i < rows(); i++) {
+			for (j = 0; j < other.cols(); j++) {
+				for (k = 0; k < other.rows(); k++) {
+					this->operator()(i, j) += copy.operator()(i, k) * other(k, j);
+				}
+			}
+		}
+		return *this;
 	}
 
   Derived operator-() const {
@@ -686,16 +704,16 @@ struct Matrix : public MatrixBase<Matrix<ScalarType, NumRows, NumCols>, ScalarTy
   explicit Matrix (size_t rows, size_t cols) :
     mStorage(rows, cols) {}
 
-  template <typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
-    Matrix(const MatrixBase<OtherDerived, OtherScalarType, OtherRows, OtherCols>& other) {
-      mStorage.resize(other.rows(), other.cols());
+	template<typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
+	Matrix(const MatrixBase<OtherDerived, OtherScalarType, OtherRows, OtherCols> &other) {
+		mStorage.resize(other.rows(), other.cols());
 
-      for (size_t i = 0; i < rows(); i++) {
-        for (size_t j = 0; j < cols(); j++) {
-          this->operator()(i,j) = other(i,j);
-        }
-      }
-    }
+		for (size_t i = 0; i < rows(); i++) {
+			for (size_t j = 0; j < cols(); j++) {
+				this->operator()(i, j) = other(i, j);
+			}
+		}
+	}
 
   //
   // Constructor for vectors
