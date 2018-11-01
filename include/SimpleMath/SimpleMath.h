@@ -806,7 +806,7 @@ struct Matrix : public MatrixBase<Matrix<ScalarType, NumRows, NumCols>, ScalarTy
   explicit Matrix(unsigned int rows, unsigned int cols = 1) :
     mStorage(rows, cols) {}
 
-  explicit Matrix (size_t rows, size_t cols = -1) :
+  explicit Matrix (size_t rows, size_t cols = 1) :
     mStorage(rows, cols) {}
 
   template<typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
