@@ -180,8 +180,8 @@ struct MatrixBase {
     return *this;
   }
 
-  Derived operator-() const {
-    Derived copy (*static_cast<const Derived*>(this));
+  Matrix<ScalarType, Rows, Cols> operator-() const {
+    Matrix<ScalarType, Rows, Cols> copy (*static_cast<const Derived*>(this));
     for (int i = 0; i < rows(); i++) {
       for (int j = 0; j < cols(); j++) {
         copy(i,j) *= static_cast<ScalarType>(-1.);
@@ -202,7 +202,7 @@ struct MatrixBase {
   }
 
   void resize(unsigned int nrows, unsigned int ncols = 1) {
-    static_assert(Rows == Dynamic);
+    static_assert(Rows == Dynamic, "Resize of fixed size matrices not allowed.");
 
     // Resize the this matrix (so far only possible for subclasses of the
     // Matrix class)
@@ -211,7 +211,7 @@ struct MatrixBase {
   }
 
   void conservativeResize(unsigned int nrows, unsigned int ncols = 1) {
-    static_assert(Rows == Dynamic);
+    static_assert(Rows == Dynamic, "Resize of fixed size matrices not allowed.");
 
 
     Derived copy(*this);
@@ -2075,7 +2075,6 @@ inline std::ostream& operator<<(std::ostream& output, const MatrixBase<Derived, 
 
   for (unsigned int i = 0; i < matrix.rows(); i++) {
     output.width(0);
-    output << "[ ";
     output.width(out_width);
     for (unsigned int j = 0; j < matrix.cols(); j++) {
       std::stringstream out_stream;
@@ -2084,9 +2083,8 @@ inline std::ostream& operator<<(std::ostream& output, const MatrixBase<Derived, 
       output << out_stream.str();
 
       if (j < matrix.cols() - 1)
-        output << ", ";
+        output << " ";
     }
-    output << " ]";
     
     if (matrix.rows() > 1 && i < matrix.rows() - 1)
       output << std::endl;

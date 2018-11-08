@@ -454,3 +454,22 @@ TEST_CASE("SpatialMatrix_Multiplication", "[SimpleMath]") {
 
   CHECK_ARRAY_CLOSE (correct_result.data(), test_result.data(), 6 * 6, 1.0e-12);
 }
+
+TEST_CASE("NegativeTransposeCreatesCopy", "[SimpleMath]") {
+	typedef Matrix<double, 3, 3> Matrix33d;
+
+	Matrix33d A (
+			1., 2., 3.,
+			4., 5., 6.,
+			7., 8., 9.
+			);
+	Matrix33d Aref (A);
+	
+	Matrix33d Aneg = -A;
+	Matrix33d ATneg = -A.transpose();
+	Matrix33d AnegT = Aneg.transpose();
+
+	CHECK (Aref(0, 2) == -AnegT(2, 0));
+	CHECK_ARRAY_CLOSE (Aref.data(), A.data(), 3 * 3, 1.0e-12);
+	CHECK_ARRAY_CLOSE (ATneg.data(), AnegT.data(), 3 * 3, 1.0e-12);
+}
