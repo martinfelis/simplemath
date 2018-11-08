@@ -33,6 +33,9 @@ typedef Matrix<float, 3, 3> Matrix33f;
 typedef Matrix<float, 3, 1> Vector3f;
 
 template <typename Derived, typename ScalarType, int NumRows, int NumCols>
+class LLT;
+
+template <typename Derived, typename ScalarType, int NumRows, int NumCols>
 class HouseholderQR;
 
 template <typename Derived, typename ScalarType, int NumRows, int NumCols>
@@ -506,10 +509,8 @@ struct MatrixBase {
       return result;
     }
 
-    // TODO: implement Cholesky decompositioe
-    const HouseholderQR<Derived, ScalarType, Rows, Cols> llt() const {
-      std::cerr << "LLT decomposition uses householder!" << std::endl;
-        return HouseholderQR<Derived, ScalarType, Rows, Cols>(*this);
+    const LLT<Derived, ScalarType, Rows, Cols> llt() const {
+        return LLT<Derived, ScalarType, Rows, Cols>(*this);
     }
 
     const HouseholderQR<Derived, ScalarType, Rows, Cols> householderQr() const {
@@ -1365,6 +1366,112 @@ struct Block : public MatrixBase<Block<Derived, ScalarType, NumRows, NumCols>, S
     assert("invalid call");
     return NULL;
   }
+};
+
+//
+// LLT Decomposition
+//
+template <typename Derived, typename ScalarType, int NumRows, int NumCols>
+class LLT {
+public:
+    typedef MatrixBase<Derived, ScalarType, NumRows, NumCols> MatrixType;
+    typedef typename MatrixType::value_type value_type;
+
+    LLT() :
+            mIsFactorized(false)
+    {}
+
+private:
+    typedef Matrix<value_type> VectorXd;
+    typedef Matrix<value_type> MatrixXXd;
+    typedef Matrix<ScalarType, NumRows, 1> ColumnVector;
+
+    bool mIsFactorized;
+    Matrix<ScalarType, NumRows, NumRows> mQ;
+    Derived mL;
+
+public:
+    LLT(const Derived &matrix) :
+            mIsFactorized(false),
+            mL(matrix)
+    {
+        compute();
+    }
+		LLT compute() {
+			for (int i = 0; i < mL.rows(); i++) {
+				for (int j = 0; j < mL.rows(); j++) {
+					if (j > i) {
+						mL(i,j) = 0.;
+						continue;
+					}
+					double s = mL(i,j);
+					for (int k = 0; k < j; k++) {
+						s = s - mL(i,k) * mL(j,k);
+					}
+					if (i > j) {
+						mL(i,j) = s / mL(j,j);
+					} else if (s > 0.) {
+						mL (i,i) = sqrt (s);
+					} else {
+						std::cerr << "Error computing Cholesky decomposition: matrix not symmetric positive definite!" << std::endl;
+						assert (false);
+					}
+				}
+			}
+
+
+			mIsFactorized = true;
+
+			return *this;
+		}
+    ColumnVector solve (
+        const ColumnVector &rhs
+        ) const {
+      assert (mIsFactorized);
+
+			ColumnVector y (mL.rows());
+			for (unsigned int i = 0; i < mL.rows(); i++) {
+				double temp = rhs[i];
+
+				for (unsigned int j = 0; j < i; j++) {
+					temp = temp - mL(i,j) * y[j];
+				}
+
+				y[i] = temp / mL(i,i);
+			}
+
+			ColumnVector x (mL.rows());
+			for (int i = mL.rows() - 1; i >= 0; i--) {
+				double temp = y[i];
+
+				for (unsigned int j = i + 1; j < mL.rows(); j++) {
+					temp = temp - mL(j, i) * x[j];
+				}
+
+				x[i] = temp / mL(i,i);
+			}
+
+      return x;
+    }
+    Derived inverse() const {
+        assert (mIsFactorized);
+
+        VectorXd rhs_temp = VectorXd::Zero(mQ.cols());
+        MatrixXXd result (mQ.cols(), mQ.cols());
+
+        for (unsigned int i = 0; i < mQ.cols(); i++) {
+            rhs_temp[i] = 1.;
+
+            result.block(0, i, mQ.cols(), 1) = solve(rhs_temp);
+
+            rhs_temp[i] = 0.;
+        }
+
+        return result;
+    }
+    Derived matrixL () const {
+        return mL;
+    }
 };
 
 //
