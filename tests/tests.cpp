@@ -337,7 +337,7 @@ TEST_CASE ("HouseholderQRSimple", "[SimpleMath]") {
 
 	Matrix<double, 3, 1> b  = A * x;
 
-	HouseholderQR<Matrix<double, 3, 3>, double, 3, 3> qr = A.householderQr();
+	HouseholderQR<Matrix<double, 3, 3> > qr = A.householderQr();
 	Matrix<double, 3, 3> Q = qr.householderQ();
 	Matrix<double, 3, 3> R = qr.matrixR();
     Matrix<double, 3, 1> x_qr = qr.solve(b);
@@ -360,7 +360,7 @@ TEST_CASE ("ColPivHouseholderQRSimple", "[SimpleMath]") {
 
 	Matrix<double, 3, 1> b  = A * x;
 
-	ColPivHouseholderQR<Matrix<double, 3, 3>, double, 3, 3> qr = A.colPivHouseholderQr();
+	ColPivHouseholderQR<Matrix<double, 3, 3> > qr = A.colPivHouseholderQr();
 	Matrix<double, 3, 3> Q = qr.householderQ();
 	Matrix<double, 3, 3> R = qr.matrixR();
 	Matrix<double, 3, 3> P = qr.matrixP();
@@ -385,7 +385,7 @@ TEST_CASE ("ColPivHouseholderQRSimpleDynamic", "[SimpleMath]") {
 
 	Matrix<double, 3, 1> b  = A * x;
 
-	ColPivHouseholderQR<Matrix<double>, double, -1, -1> qr = A.colPivHouseholderQr();
+	ColPivHouseholderQR<Matrix<double> > qr = A.colPivHouseholderQr();
 	Matrix<double, 3, 3> Q = qr.householderQ();
 	Matrix<double, 3, 3> R = qr.matrixR();
 	Matrix<double, 3, 3> P = qr.matrixP();

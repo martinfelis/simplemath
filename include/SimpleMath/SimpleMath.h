@@ -32,13 +32,13 @@ struct Transpose;
 typedef Matrix<float, 3, 3> Matrix33f;
 typedef Matrix<float, 3, 1> Vector3f;
 
-template <typename Derived, typename ScalarType, int NumRows, int NumCols>
+template <typename Derived>
 class LLT;
 
-template <typename Derived, typename ScalarType, int NumRows, int NumCols>
+template <typename Derived>
 class HouseholderQR;
 
-template <typename Derived, typename ScalarType, int NumRows, int NumCols>
+template <typename Derived>
 class ColPivHouseholderQR;
 
 
@@ -50,6 +50,12 @@ template <typename Derived, typename ScalarType, int Rows, int Cols>
 struct MatrixBase {
   typedef MatrixBase<Derived, ScalarType, Rows, Cols> MatrixType;
   typedef ScalarType value_type;
+
+	enum {
+    RowsAtCompileTime = Rows,
+    ColsAtCompileTime = Cols
+  };
+
 
   Derived& operator=(const Derived& other) {
     if (static_cast<const void*>(this) != static_cast<const void*>(&other)) {
@@ -509,16 +515,16 @@ struct MatrixBase {
       return result;
     }
 
-    const LLT<Derived, ScalarType, Rows, Cols> llt() const {
-        return LLT<Derived, ScalarType, Rows, Cols>(*this);
+    const LLT<Derived> llt() const {
+        return LLT<Derived>(*this);
     }
 
-    const HouseholderQR<Derived, ScalarType, Rows, Cols> householderQr() const {
-        return HouseholderQR<Derived, ScalarType, Rows, Cols>(*this);
+    const HouseholderQR<Derived> householderQr() const {
+        return HouseholderQR<Derived>(*this);
     }
 
-    const ColPivHouseholderQR<Derived, ScalarType, Rows, Cols> colPivHouseholderQr() const {
-        return ColPivHouseholderQR<Derived, ScalarType, Rows, Cols>(*this);
+    const ColPivHouseholderQR<Derived> colPivHouseholderQr() const {
+        return ColPivHouseholderQR<Derived>(*this);
     }
 
   ScalarType* data() {
@@ -1371,11 +1377,11 @@ struct Block : public MatrixBase<Block<Derived, ScalarType, NumRows, NumCols>, S
 //
 // LLT Decomposition
 //
-template <typename Derived, typename ScalarType, int NumRows, int NumCols>
+template <typename Derived>
 class LLT {
 public:
-    typedef MatrixBase<Derived, ScalarType, NumRows, NumCols> MatrixType;
-    typedef typename MatrixType::value_type value_type;
+    typedef typename Derived::value_type value_type;
+    typedef MatrixBase<Derived, value_type, Derived::RowsAtCompileTime, Derived::ColsAtCompileTime> MatrixType;
 
     LLT() :
             mIsFactorized(false)
@@ -1384,10 +1390,10 @@ public:
 private:
     typedef Matrix<value_type> VectorXd;
     typedef Matrix<value_type> MatrixXXd;
-    typedef Matrix<ScalarType, NumRows, 1> ColumnVector;
+    typedef Matrix<value_type, Derived::RowsAtCompileTime, 1> ColumnVector;
 
     bool mIsFactorized;
-    Matrix<ScalarType, NumRows, NumRows> mQ;
+    Matrix<value_type, Derived::RowsAtCompileTime, Derived::ColsAtCompileTime> mQ;
     Derived mL;
 
 public:
@@ -1477,11 +1483,11 @@ public:
 //
 // QR Decomposition
 //
-template <typename Derived, typename ScalarType, int NumRows, int NumCols>
+template <typename Derived>
 class HouseholderQR {
 public:
-    typedef MatrixBase<Derived, ScalarType, NumRows, NumCols> MatrixType;
-    typedef typename MatrixType::value_type value_type;
+    typedef typename Derived::value_type value_type;
+		typedef MatrixBase<Derived, value_type, Derived::RowsAtCompileTime, Derived::ColsAtCompileTime> MatrixType;
 
     HouseholderQR() :
             mIsFactorized(false)
@@ -1490,10 +1496,10 @@ public:
 private:
     typedef Matrix<value_type> VectorXd;
     typedef Matrix<value_type> MatrixXXd;
-    typedef Matrix<ScalarType, NumRows, 1> ColumnVector;
+    typedef Matrix<value_type, Derived::RowsAtCompileTime, 1> ColumnVector;
 
     bool mIsFactorized;
-    Matrix<ScalarType, NumRows, NumRows> mQ;
+    Matrix<value_type, Derived::RowsAtCompileTime, Derived::RowsAtCompileTime> mQ;
     Derived mR;
 
 public:
@@ -1593,20 +1599,20 @@ public:
     }
 };
 
-template <typename Derived, typename ScalarType, int NumRows, int NumCols>
+template <typename Derived>
 class ColPivHouseholderQR {
 public:
-    typedef MatrixBase<Derived, ScalarType, NumRows, NumCols> MatrixType;
-    typedef typename MatrixType::value_type value_type;
+    typedef typename Derived::value_type value_type;
+    typedef MatrixBase<Derived, value_type, Derived::RowsAtCompileTime, Derived::ColsAtCompileTime> MatrixType;
 
 
 private:
     typedef Matrix<value_type> VectorXd;
     typedef Matrix<value_type> MatrixXXd;
-  typedef Matrix<ScalarType, NumRows, 1> ColumnVector;
+    typedef Matrix<value_type, Derived::RowsAtCompileTime, 1> ColumnVector;
 
     bool mIsFactorized;
-    Matrix<ScalarType, NumRows, NumRows> mQ;
+    Matrix<value_type, Derived::RowsAtCompileTime, Derived::ColsAtCompileTime> mQ;
     Derived mR;
 
     unsigned int *mPermutations;
