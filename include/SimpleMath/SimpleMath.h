@@ -807,13 +807,35 @@ struct Matrix : public MatrixBase<Matrix<ScalarType, NumRows, NumCols>, ScalarTy
         SizeAtCompileTime / RowsAtCompileTime
         ) {}
 
-  explicit Matrix(int rows, int cols = 1) :
+	explicit Matrix(int rows) : mStorage (rows, 1) {}
+	explicit Matrix(unsigned int rows) : mStorage (rows, 1) {}
+	explicit Matrix(size_t rows) : mStorage (rows, 1) {}
+
+  explicit Matrix(int rows, int cols) :
     mStorage(rows, cols) {}
 
-  explicit Matrix(unsigned int rows, unsigned int cols = 1) :
+  explicit Matrix(int rows, unsigned int cols) :
     mStorage(rows, cols) {}
 
-  explicit Matrix (size_t rows, size_t cols = 1) :
+  explicit Matrix(int rows, size_t cols) :
+    mStorage(rows, cols) {}
+
+  explicit Matrix(unsigned int rows, int cols) :
+    mStorage(rows, cols) {}
+
+  explicit Matrix(unsigned int rows, unsigned int cols) :
+    mStorage(rows, cols) {}
+
+  explicit Matrix(unsigned int rows, size_t cols) :
+    mStorage(rows, cols) {}
+
+  explicit Matrix(size_t rows, int cols) :
+    mStorage(rows, cols) {}
+
+  explicit Matrix(size_t rows, unsigned int cols) :
+    mStorage(rows, cols) {}
+
+	explicit Matrix(size_t rows, size_t cols) :
     mStorage(rows, cols) {}
 
   template<typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
@@ -844,15 +866,7 @@ struct Matrix : public MatrixBase<Matrix<ScalarType, NumRows, NumCols>, ScalarTy
   //
   // Constructor for vectors
   //
-  Matrix (
-      const ScalarType& v0
-      ) {
-    static_assert (NumRows * NumCols == 1, "Invalid matrix size");
-
-    operator()(0,0) = v0;
-  }
-
-  Matrix (
+  explicit Matrix (
       const ScalarType& v0,
       const ScalarType& v1
       ) {

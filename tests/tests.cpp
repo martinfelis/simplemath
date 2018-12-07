@@ -473,3 +473,39 @@ TEST_CASE("NegativeTransposeCreatesCopy", "[SimpleMath]") {
 	CHECK_ARRAY_CLOSE (Aref.data(), A.data(), 3 * 3, 1.0e-12);
 	CHECK_ARRAY_CLOSE (ATneg.data(), AnegT.data(), 3 * 3, 1.0e-12);
 }
+
+TEST_CASE("SpecifyDynamicSizeInConstructor", "[SimpleMath]") {
+	typedef Matrix<double, -1, -1> MatrixNd;
+
+	MatrixNd matrix45 (4, static_cast<unsigned int>(5));
+
+	CHECK (matrix45.rows() == 4);
+	CHECK (matrix45.cols() == 5);
+}
+
+TEST_CASE("SpecifyDynamicVectorSizeInConstructor", "[SimpleMath]") {
+	typedef Matrix<double, -1, -1> MatrixNd;
+
+	MatrixNd matrix45 (static_cast<unsigned int>(5));
+
+	CHECK (matrix45.rows() == 5);
+	CHECK (matrix45.cols() == 1);
+}
+
+TEST_CASE("SpecifySizeInConstructor", "[SimpleMath]") {
+	typedef Matrix<double, 4, 5> MatrixNd;
+
+	MatrixNd matrix45 (static_cast<size_t>(4), 5);
+
+	CHECK (matrix45.rows() == 4);
+	CHECK (matrix45.cols() == 5);
+}
+
+TEST_CASE("Initialize2DVector", "[SimpleMath]") {
+	typedef Matrix<double, 2, 1> Vector2d;
+
+	Vector2d vec(4.1, 1.2);
+
+	CHECK (vec[0] == 4.1);
+	CHECK (vec[1] == 1.2);
+}
