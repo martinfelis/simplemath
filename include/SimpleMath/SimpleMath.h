@@ -174,7 +174,7 @@ struct MatrixBase {
   }
 
   template <typename OtherDerived>
-  Derived operator*=(const OtherDerived &other) {
+  Derived operator*=(const MatrixBase<OtherDerived, typename OtherDerived:: value_type, OtherDerived::RowsAtCompileTime, OtherDerived::ColsAtCompileTime> &other) {
     Derived copy (*static_cast<const Derived*>(this));
     this->setZero();
 

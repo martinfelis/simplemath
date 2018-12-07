@@ -509,3 +509,15 @@ TEST_CASE("Initialize2DVector", "[SimpleMath]") {
 	CHECK (vec[0] == 4.1);
 	CHECK (vec[1] == 1.2);
 }
+
+TEST_CASE("MultiplyWithInt", "[SimpleMath]") {
+	typedef Matrix<double, 3, 1> Vector3d;
+
+	Vector3d vec(4.1, 1.2, 2.2);
+
+	vec *= 2;
+
+	CHECK (vec[0] == 4.1 * 2.0);
+	CHECK (vec[1] == 1.2 * 2.0);
+	CHECK (vec[2] == 2.2 * 2.0);
+}
