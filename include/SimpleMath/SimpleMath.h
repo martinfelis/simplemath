@@ -222,7 +222,6 @@ struct MatrixBase {
   void conservativeResize(unsigned int nrows, unsigned int ncols = 1) {
     static_assert(Rows == Dynamic, "Resize of fixed size matrices not allowed.");
 
-
     Derived copy(*this);
 
     unsigned int arows = std::min(nrows, (unsigned int) rows());
@@ -384,10 +383,7 @@ struct MatrixBase {
     operator()(5,3) = v53;
     operator()(5,4) = v54;
     operator()(5,5) = v55;
-
    }
-
-
 
   size_t rows() const {
     return static_cast<const Derived*>(this)->rows();
@@ -409,11 +405,11 @@ struct MatrixBase {
   }
 
   const ScalarType& operator[](const size_t& i) const {
-        assert(cols() == 1);
+    assert(cols() == 1);
     return static_cast<const Derived*>(this)->operator()(i,0);
   }
   ScalarType& operator[](const size_t& i) {
-      assert(cols() == 1);
+    assert(cols() == 1);
     return static_cast<Derived*>(this)->operator()(i,0);
   }
 
@@ -499,33 +495,84 @@ struct MatrixBase {
     return result;
   }
 
-    Derived inverse() const {
-      return colPivHouseholderQr().inverse();
-    }
+  Derived inverse() const {
+    if (rows() == cols()) {
+       if (rows() == 1) {
+        Derived result(rows(), cols());
+        result(0,0) = static_cast<ScalarType>(1.) / operator()(0,0);
 
-    ScalarType trace() const {
-      assert(rows() == cols());
+        return result;
+       } else if (rows() == 2) {
+        const ScalarType& a = operator()(0,0);
+        const ScalarType& b = operator()(0,1);
+        const ScalarType& c = operator()(1,0);
+        const ScalarType& d = operator()(1,1);
 
-      ScalarType result = static_cast<ScalarType>(0.0);
+        Derived result(rows(), cols());
 
-      for (unsigned int i = 0; i < rows(); i++) {
-        result += operator()(i,i);
+        ScalarType detinv = static_cast<ScalarType>(1.) / (a * d - b * c);
+
+        result(0,0) = d * detinv;
+        result(0,1) = -b * detinv;
+        result(1,0) = -c * detinv;
+        result(1,1) = d * detinv;
+       
+        return result;
+      } else if (rows() == 3) {
+				// source:
+        // https://stackoverflow.com/questions/983999/simple-3x3-matrix-inverse-code-c
+			
+				// computes the inverse of a matrix m
+				ScalarType det = operator()(0, 0) * (operator()(1, 1) * operator()(2, 2)
+            - operator()(2, 1) * operator()(1, 2))
+            - operator()(0, 1) * (operator()(1, 0) * operator()(2, 2) 
+            - operator()(1, 2) * operator()(2, 0)) 
+            + operator()(0, 2) * (operator()(1, 0) * operator()(2, 1)
+            - operator()(1, 1) * operator()(2, 0));
+
+				ScalarType invdet = 1. / det;
+
+        Derived result(rows(), cols());
+
+        result(0,0) = (operator()(1, 1) * operator()(2, 2) - operator()(2, 1) * operator()(1, 2)) * invdet;
+        result(0,1) = (operator()(0, 2) * operator()(2, 1) - operator()(0, 1) * operator()(2, 2)) * invdet;
+        result(0,2) = (operator()(0, 1) * operator()(1, 2) - operator()(0, 2) * operator()(1, 1)) * invdet;
+        result(1,0) = (operator()(1, 2) * operator()(2, 0) - operator()(1, 0) * operator()(2, 2)) * invdet;
+        result(1,1) = (operator()(0, 0) * operator()(2, 2) - operator()(0, 2) * operator()(2, 0)) * invdet;
+        result(1,2) = (operator()(1, 0) * operator()(0, 2) - operator()(0, 0) * operator()(1, 2)) * invdet;
+        result(2,0) = (operator()(1, 0) * operator()(2, 1) - operator()(2, 0) * operator()(1, 1)) * invdet;
+        result(2,1) = (operator()(2, 0) * operator()(0, 1) - operator()(0, 0) * operator()(2, 1)) * invdet;
+        result(2,2) = (operator()(0, 0) * operator()(1, 1) - operator()(1, 0) * operator()(0, 1)) * invdet;
+
+        return result;
       }
+    }
+    return colPivHouseholderQr().inverse();
+  }
 
-      return result;
+  ScalarType trace() const {
+    assert(rows() == cols());
+
+    ScalarType result = static_cast<ScalarType>(0.0);
+
+    for (unsigned int i = 0; i < rows(); i++) {
+      result += operator()(i,i);
     }
 
-    const LLT<Derived> llt() const {
-        return LLT<Derived>(*this);
-    }
+    return result;
+  }
 
-    const HouseholderQR<Derived> householderQr() const {
-        return HouseholderQR<Derived>(*this);
-    }
+  const LLT<Derived> llt() const {
+    return LLT<Derived>(*this);
+  }
 
-    const ColPivHouseholderQR<Derived> colPivHouseholderQr() const {
-        return ColPivHouseholderQR<Derived>(*this);
-    }
+  const HouseholderQR<Derived> householderQr() const {
+    return HouseholderQR<Derived>(*this);
+  }
+
+  const ColPivHouseholderQR<Derived> colPivHouseholderQr() const {
+    return ColPivHouseholderQR<Derived>(*this);
+  }
 
   ScalarType* data() {
     return static_cast<Derived*>(this)->data();
@@ -680,9 +727,9 @@ struct Storage {
     resize(rows, cols);
   }
 
-  size_t rows() const { return NumRows; }
+  inline size_t rows() const { return NumRows; }
 
-  size_t cols() const { return NumCols; }
+  inline size_t cols() const { return NumCols; }
 
   void resize(int num_rows, int num_cols) {
     // Resizing of fixed size matrices not allowed
@@ -696,15 +743,15 @@ struct Storage {
     assert (num_rows == NumRows && num_cols == NumCols);
   }
 
-  ScalarType& coeff(int row_index, int col_index) {
-    assert (row_index >= 0 && row_index <= NumRows);
-    assert (col_index >= 0 && col_index <= NumCols);
+  inline ScalarType& coeff(int row_index, int col_index) {
+//    assert (row_index >= 0 && row_index <= NumRows);
+//    assert (col_index >= 0 && col_index <= NumCols);
     return mData[row_index * NumCols + col_index];
   }
 
-  const ScalarType& coeff(int row_index, int col_index) const {
-    assert (row_index >= 0 && row_index <= NumRows);
-    assert (col_index >= 0 && col_index <= NumCols);
+  inline const ScalarType& coeff(int row_index, int col_index) const {
+//    assert (row_index >= 0 && row_index <= NumRows);
+//    assert (col_index >= 0 && col_index <= NumCols);
     return mData[row_index * NumCols + col_index];
   }
 };
@@ -721,8 +768,8 @@ struct Storage<ScalarType, 0, Dynamic, NumCols> {
         resize(rows, cols);
     }
 
-    size_t rows() const { return mRows; }
-    size_t cols() const { return mCols; }
+    inline size_t rows() const { return mRows; }
+    inline size_t cols() const { return mCols; }
 
     void resize(int num_rows, int num_cols) {
         if (mRows != num_rows || mCols != num_cols) {
@@ -736,14 +783,14 @@ struct Storage<ScalarType, 0, Dynamic, NumCols> {
         }
     }
 
-    ScalarType& coeff(int row_index, int col_index) {
-        assert (row_index >= 0 && row_index <= mRows);
-        assert (col_index >= 0 && col_index <= mCols);
+    inline ScalarType& coeff(int row_index, int col_index) {
+//        assert (row_index >= 0 && row_index <= mRows);
+//        assert (col_index >= 0 && col_index <= mCols);
         return mData[row_index * mCols + col_index];
     }
-    const ScalarType& coeff(int row_index, int col_index) const {
-        assert (row_index >= 0 && row_index <= mRows);
-        assert (col_index >= 0 && col_index <= mCols);
+    inline const ScalarType& coeff(int row_index, int col_index) const {
+//        assert (row_index >= 0 && row_index <= mRows);
+//        assert (col_index >= 0 && col_index <= mCols);
         return mData[row_index * mCols + col_index];
     }
 };
@@ -761,8 +808,8 @@ struct Storage<ScalarType, 0, Dynamic, Dynamic> {
         resize(rows, cols);
     }
 
-    size_t rows() const { return mRows; }
-    size_t cols() const { return mCols; }
+    inline size_t rows() const { return mRows; }
+    inline size_t cols() const { return mCols; }
 
     void resize(int num_rows, int num_cols) {
         if (mRows != num_rows || mCols != num_cols) {
@@ -776,17 +823,17 @@ struct Storage<ScalarType, 0, Dynamic, Dynamic> {
         }
     }
 
-    ScalarType& coeff(int row_index, int col_index) {
-        assert (row_index >= 0 && row_index <= mRows);
-        assert (col_index >= 0 && col_index <= mCols);
+    inline ScalarType& coeff(int row_index, int col_index) {
+//        assert (row_index >= 0 && row_index <= mRows);
+//        assert (col_index >= 0 && col_index <= mCols);
         return mData[row_index * mCols + col_index];
     }
-    const ScalarType& coeff(int row_index, int col_index) const {
-        assert (row_index >= 0 && row_index <= mRows);
-        assert (col_index >= 0 && col_index <= mCols);
+    inline const ScalarType& coeff(int row_index, int col_index) const {
+//        assert (row_index >= 0 && row_index <= mRows);
+//        assert (col_index >= 0 && col_index <= mCols);
         return mData[row_index * mCols + col_index];
     }
-    };
+};
 
 
 template <typename ScalarType, int NumRows, int NumCols>
@@ -1102,7 +1149,11 @@ struct Matrix : public MatrixBase<Matrix<ScalarType, NumRows, NumCols>, ScalarTy
       return *this;
     }
 
-  ScalarType& operator()(const size_t& i, const size_t& j) {
+  inline ScalarType& operator()(const size_t& i, const size_t& j) {
+    return mStorage.coeff(i, j);
+  }
+
+  inline const ScalarType& operator()(const size_t& i, const size_t& j) const {
     return mStorage.coeff(i, j);
   }
 
@@ -1112,10 +1163,6 @@ struct Matrix : public MatrixBase<Matrix<ScalarType, NumRows, NumCols>, ScalarTy
 
   const ScalarType* data() const {
     return mStorage.mData;
-  }
-
-  const ScalarType& operator()(const size_t& i, const size_t& j) const {
-    return mStorage.coeff(i, j);
   }
 
   size_t cols() const {
