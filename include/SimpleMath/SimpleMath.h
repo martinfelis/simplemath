@@ -1,3 +1,38 @@
+/*
+ * SimpleMath - A simple highly inefficient single header C++ math library
+ * Copyright (c) 2019 Martin Felis <martin@fysx.org>
+ *
+ * This is a highly inefficient math library. It was conceived while he was
+ * waiting for code to compile which used a highly efficient math library.
+ * 
+ * It is intended to be used as a fast compiling substitute for the
+ * blazingly fast Eigen3
+ * http://eigen.tuxfamily.org/index.php?title=Main_Page library and tries
+ * to mimic its API to a certain extent.
+ * 
+ * Feel free to use it wherever you like (even claim it as yours!). However,
+ * no guarantees are given that this code does what it says it would.
+ *
+ * Should you need a more formal license go with the following (zlib license):
+ *
+ * This software is provided 'as-is', without any express or implied
+ * warranty. In no event will the authors be held liable for any damages
+ * arising from the use of this software.
+ * 
+ * Permission is granted to anyone to use this software for any purpose,
+ * including commercial applications, and to alter it and redistribute it
+ * freely, subject to the following restrictions:
+ * 
+ * 1. The origin of this software must not be misrepresented; you must not
+ *    claim that you wrote the original software. If you use this software
+ *    in a product, an acknowledgment in the product documentation would be
+ *    appreciated but is not required.
+ * 2. Altered source versions must be plainly marked as such, and must not be
+ *    misrepresented as being the original software.
+ * 3. This notice may not be removed or altered from any source distribution.
+ *
+*/
+
 #pragma once
 
 #include <sstream>
@@ -51,7 +86,7 @@ struct MatrixBase {
   typedef MatrixBase<Derived, ScalarType, Rows, Cols> MatrixType;
   typedef ScalarType value_type;
 
-	enum {
+  enum {
     RowsAtCompileTime = Rows,
     ColsAtCompileTime = Cols
   };
@@ -519,18 +554,18 @@ struct MatrixBase {
        
         return result;
       } else if (rows() == 3) {
-				// source:
+        // source:
         // https://stackoverflow.com/questions/983999/simple-3x3-matrix-inverse-code-c
-			
-				// computes the inverse of a matrix m
-				ScalarType det = operator()(0, 0) * (operator()(1, 1) * operator()(2, 2)
+      
+        // computes the inverse of a matrix m
+        ScalarType det = operator()(0, 0) * (operator()(1, 1) * operator()(2, 2)
             - operator()(2, 1) * operator()(1, 2))
             - operator()(0, 1) * (operator()(1, 0) * operator()(2, 2) 
             - operator()(1, 2) * operator()(2, 0)) 
             + operator()(0, 2) * (operator()(1, 0) * operator()(2, 1)
             - operator()(1, 1) * operator()(2, 0));
 
-				ScalarType invdet = 1. / det;
+        ScalarType invdet = 1. / det;
 
         Derived result(rows(), cols());
 
@@ -854,9 +889,9 @@ struct Matrix : public MatrixBase<Matrix<ScalarType, NumRows, NumCols>, ScalarTy
         SizeAtCompileTime / RowsAtCompileTime
         ) {}
 
-	explicit Matrix(int rows) : mStorage (rows, 1) {}
-	explicit Matrix(unsigned int rows) : mStorage (rows, 1) {}
-	explicit Matrix(size_t rows) : mStorage (rows, 1) {}
+  explicit Matrix(int rows) : mStorage (rows, 1) {}
+  explicit Matrix(unsigned int rows) : mStorage (rows, 1) {}
+  explicit Matrix(size_t rows) : mStorage (rows, 1) {}
 
   explicit Matrix(int rows, int cols) :
     mStorage(rows, cols) {}
@@ -882,7 +917,7 @@ struct Matrix : public MatrixBase<Matrix<ScalarType, NumRows, NumCols>, ScalarTy
   explicit Matrix(size_t rows, unsigned int cols) :
     mStorage(rows, cols) {}
 
-	explicit Matrix(size_t rows, size_t cols) :
+  explicit Matrix(size_t rows, size_t cols) :
     mStorage(rows, cols) {}
 
   template<typename OtherDerived, typename OtherScalarType, int OtherRows, int OtherCols>
@@ -1464,59 +1499,59 @@ public:
     {
         compute();
     }
-		LLT compute() {
-			for (int i = 0; i < mL.rows(); i++) {
-				for (int j = 0; j < mL.rows(); j++) {
-					if (j > i) {
-						mL(i,j) = 0.;
-						continue;
-					}
-					double s = mL(i,j);
-					for (int k = 0; k < j; k++) {
-						s = s - mL(i,k) * mL(j,k);
-					}
-					if (i > j) {
-						mL(i,j) = s / mL(j,j);
-					} else if (s > 0.) {
-						mL (i,i) = sqrt (s);
-					} else {
-						std::cerr << "Error computing Cholesky decomposition: matrix not symmetric positive definite!" << std::endl;
-						assert (false);
-					}
-				}
-			}
+    LLT compute() {
+      for (int i = 0; i < mL.rows(); i++) {
+        for (int j = 0; j < mL.rows(); j++) {
+          if (j > i) {
+            mL(i,j) = 0.;
+            continue;
+          }
+          double s = mL(i,j);
+          for (int k = 0; k < j; k++) {
+            s = s - mL(i,k) * mL(j,k);
+          }
+          if (i > j) {
+            mL(i,j) = s / mL(j,j);
+          } else if (s > 0.) {
+            mL (i,i) = sqrt (s);
+          } else {
+            std::cerr << "Error computing Cholesky decomposition: matrix not symmetric positive definite!" << std::endl;
+            assert (false);
+          }
+        }
+      }
 
 
-			mIsFactorized = true;
+      mIsFactorized = true;
 
-			return *this;
-		}
+      return *this;
+    }
     ColumnVector solve (
         const ColumnVector &rhs
         ) const {
       assert (mIsFactorized);
 
-			ColumnVector y (mL.rows());
-			for (unsigned int i = 0; i < mL.rows(); i++) {
-				double temp = rhs[i];
+      ColumnVector y (mL.rows());
+      for (unsigned int i = 0; i < mL.rows(); i++) {
+        double temp = rhs[i];
 
-				for (unsigned int j = 0; j < i; j++) {
-					temp = temp - mL(i,j) * y[j];
-				}
+        for (unsigned int j = 0; j < i; j++) {
+          temp = temp - mL(i,j) * y[j];
+        }
 
-				y[i] = temp / mL(i,i);
-			}
+        y[i] = temp / mL(i,i);
+      }
 
-			ColumnVector x (mL.rows());
-			for (int i = mL.rows() - 1; i >= 0; i--) {
-				double temp = y[i];
+      ColumnVector x (mL.rows());
+      for (int i = mL.rows() - 1; i >= 0; i--) {
+        double temp = y[i];
 
-				for (unsigned int j = i + 1; j < mL.rows(); j++) {
-					temp = temp - mL(j, i) * x[j];
-				}
+        for (unsigned int j = i + 1; j < mL.rows(); j++) {
+          temp = temp - mL(j, i) * x[j];
+        }
 
-				x[i] = temp / mL(i,i);
-			}
+        x[i] = temp / mL(i,i);
+      }
 
       return x;
     }
@@ -1548,7 +1583,7 @@ template <typename Derived>
 class HouseholderQR {
 public:
     typedef typename Derived::value_type value_type;
-		typedef MatrixBase<Derived, value_type, Derived::RowsAtCompileTime, Derived::ColsAtCompileTime> MatrixType;
+    typedef MatrixBase<Derived, value_type, Derived::RowsAtCompileTime, Derived::ColsAtCompileTime> MatrixType;
 
     HouseholderQR() :
             mIsFactorized(false)
