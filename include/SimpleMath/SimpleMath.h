@@ -609,6 +609,16 @@ struct MatrixBase {
     return result;
   }
 
+  ScalarType mean() const {
+    assert(rows() == 1 || cols() == 1);
+    ScalarType result = static_cast<ScalarType>(0.0);
+    for (unsigned int i = 0; i < rows(); i++) {
+      result += operator[](i);
+    }
+
+    return result / static_cast<ScalarType>(rows() * cols());
+  }
+
   const LLT<Derived> llt() const {
     return LLT<Derived>(*this);
   }
@@ -815,6 +825,10 @@ struct Storage<ScalarType, 0, Dynamic, NumCols> {
 
     Storage() {}
 
+    ~Storage() {
+      delete[] mData;
+    }
+
     Storage(int rows, int cols) {
         resize(rows, cols);
     }
@@ -854,6 +868,10 @@ struct Storage<ScalarType, 0, Dynamic, Dynamic> {
     int mCols = 0;
 
     Storage() {}
+
+    ~Storage() {
+      delete[] mData;
+    }
 
     Storage(int rows, int cols) {
         resize(rows, cols);
