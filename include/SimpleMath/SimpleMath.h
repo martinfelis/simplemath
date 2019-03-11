@@ -71,6 +71,9 @@ template <typename Derived>
 class LLT;
 
 template <typename Derived>
+class PartialPivLU;
+
+template <typename Derived>
 class HouseholderQR;
 
 template <typename Derived>
@@ -599,6 +602,10 @@ struct MatrixBase {
 
   const LLT<Derived> llt() const {
     return LLT<Derived>(*this);
+  }
+
+  const PartialPivLU<Derived> partialPivLu() const {
+    return PartialPivLU<Derived>(*this);
   }
 
   const HouseholderQR<Derived> householderQr() const {
@@ -1573,6 +1580,185 @@ public:
     }
     Derived matrixL () const {
         return mL;
+    }
+};
+
+
+//
+// Partial Pivoting LU Decomposition
+//
+template <typename Derived>
+class PartialPivLU {
+public:
+    typedef typename Derived::value_type value_type;
+    typedef MatrixBase<Derived, value_type, Derived::RowsAtCompileTime, Derived::ColsAtCompileTime> MatrixType;
+    PartialPivLU() :
+            mIsFactorized(false)
+    {}
+private:
+    typedef Matrix<value_type> VectorXd;
+    typedef Matrix<value_type> MatrixXXd;
+    typedef Matrix<value_type, Derived::RowsAtCompileTime, 1> ColumnVector;
+    typedef Matrix<value_type, 1, Derived::ColsAtCompileTime> RowVector;
+    bool mIsFactorized;
+    unsigned int *mPermutations = nullptr;
+    Derived mLU;
+
+public:
+    ~PartialPivLU() {
+      delete[] mPermutations;
+    }
+
+    PartialPivLU(const Derived &matrix) :
+            mIsFactorized(false),
+            mLU (matrix)
+    {
+        mPermutations = new unsigned int [matrix.cols() + 1];
+        for (unsigned int i = 0; i <= matrix.cols(); i++) {
+            mPermutations[i] = i;
+        }
+        compute(matrix);
+    }
+
+    PartialPivLU& compute(const Derived &matrix) {
+      unsigned int n = matrix.rows();
+
+      double v_abs;
+      RowVector temp_vec;
+
+      unsigned int i,j,k;
+
+      // over all columns
+      for (i = 0; i < n; i++) {
+        double max_v = 0.0;
+        unsigned int max_i = i;
+
+        // Find the row pivoting index
+        for (k = i; k < n; k++) {
+          if ((v_abs = fabs(mLU(k, i))) > max_v) {
+            max_v = v_abs;
+            max_i = k;
+          }
+        }
+
+        if (max_v < std::numeric_limits<double>::epsilon()) {
+          std::cerr << "Error: pivoting failed for matrix A = " << std::endl;
+          std::cerr << "A = " << matrix << std::endl;
+          abort();
+        }
+
+        // Perform the permutation
+        if (max_i != i) {
+          // update permutation vector
+          j = mPermutations[i];
+          mPermutations[i] = mPermutations[max_i];
+          mPermutations[max_i] = j;
+
+          // swap columns
+          temp_vec = mLU.block(i,0,1,n);
+          mLU.block(i, 0, 1, n) = mLU.block(max_i, 0, 1, n);
+          mLU.block(max_i, 0, 1, n) = temp_vec;
+
+          // Increase number of permutations
+          mPermutations[n]++;
+        }
+
+        // eliminate i'th column of k'th row
+        for (int k = i+1; k < n; k++) {
+          mLU(k,i) = mLU(k,i) / mLU(i,i);
+
+          // iterate over all columns
+          for (int j = i+1; j < n; j++) {
+            mLU(k,j) = mLU(k,j) - mLU(i,j) * mLU(k,i);
+          }
+        }
+      }
+
+      mIsFactorized = true;
+
+      return *this;
+    }
+
+    Derived matrixL() const {
+      Derived result (Derived::Zero(mLU.rows(), mLU.cols()));
+
+      unsigned int n = mLU.rows();
+
+      for (int i = 0; i < n; i++) {
+        for (int j = 0; j < i; j++) {
+          result(i,j) = mLU(i,j);
+        }
+
+        result(i,i) = 1.0;
+      }
+
+      return result;
+    }
+
+    Derived matrixU() const {
+      Derived result (Derived::Zero(mLU.rows(), mLU.cols()));
+
+      unsigned int n = mLU.rows();
+
+      for (int i = 0; i < n; i++) {
+        for (int j = i; j < n; j++) {
+          result(i,j) = mLU(i,j);
+        }
+      }
+
+      return result;
+    }
+
+    Derived matrixP() const {
+      Derived result(Derived::Zero(mLU.rows(), mLU.cols()));
+
+      unsigned int n = mLU.rows();
+      for (int i = 0; i < n; i++) {
+        result(i, mPermutations[i]) = 1.0;
+      }
+
+      return result;
+    }
+
+    ColumnVector solve (
+            const ColumnVector &rhs
+    ) const {
+      assert (mIsFactorized);
+
+      unsigned int n = mLU.rows();
+
+      // Backsolve L^-1 * rhs
+      ColumnVector result(n, 1);
+
+      for (int i = 0; i < n; i++) {
+        result[i] = rhs[mPermutations[i]];
+        for (int j = 0; j < i; j++) {
+          result[i] = result[i] - result[j] * mLU(i,j);
+        }
+      }
+
+      // Solve U^-1 * result
+      for (int i = n - 1; i >= 0; i--) {
+        for (int j = i + 1; j < n; j++) {
+          result[i] = result[i] - result[j] * mLU(i,j);
+        }
+
+        result[i] = result[i] / mLU(i,i);
+      }
+
+      return result;
+    }
+
+    Derived inverse() const {
+        assert (mIsFactorized);
+        VectorXd rhs_temp = VectorXd::Zero(mLU.cols());
+        MatrixXXd result (mLU.cols(), mLU.cols());
+        for (unsigned int i = 0; i < mLU.cols(); i++) {
+            rhs_temp[i] = 1.;
+            result.block(0, i, mLU.cols(), 1) = solve(rhs_temp);
+            rhs_temp[i] = 0.;
+        }
+        return result;
     }
 };
 

@@ -276,7 +276,7 @@ TEST_CASE ("SimpleMathConstTranspose", "[SimpleMath]") {
 	cout << res1 << endl;
 	cout << vec1.transpose() * vec1 << endl;
 	cout << const_block.transpose() * const_block << endl;
-	float result = const_block.transpose() * const_block;
+	float result = static_cast<float>(const_block.transpose() * const_block);
 	cout << result << endl;
 }
 
@@ -375,8 +375,8 @@ TEST_CASE ("ColPivHouseholderQRSimpleDynamic", "[SimpleMath]") {
 
 	A <<
 	  1., 2., 3.,
-			4., 5., 6.,
-			7., 8., 4.;
+	  4., 5., 6.,
+	  7., 8., 4.;
 
 	Matrix<double> x (3, 1);
 	x[0] = 1.;
@@ -393,6 +393,44 @@ TEST_CASE ("ColPivHouseholderQRSimpleDynamic", "[SimpleMath]") {
 	Matrix<double> x_qr = qr.solve(b);
 
 	CHECK_ARRAY_CLOSE (x.data(), x_qr.data(), 3, 1.0e-14);
+}
+
+TEST_CASE ("PartialPivLU", "[SimpleMath]") {
+	Matrix<double, 3, 3> A;
+	A <<
+	  1., 2., 3.,
+	  7., 8., 4.,
+	  4., 5., 6.;
+
+	Matrix<double, 3, 1> x;
+	x[0] = 1.;
+	x[1] = 2.;
+	x[2] = 3.;
+
+	Matrix<double, 3, 1> b  = A * x;
+
+	PartialPivLU<Matrix<double, 3, 3> > plu = A.partialPivLu();
+
+	Matrix<double, 3, 1> x_plu = plu.solve(b);
+
+	CHECK_ARRAY_CLOSE (x.data(), x_plu.data(), 3, 1.0e-14);
+}
+
+TEST_CASE ("PartialPivLUInverse", "[SimpleMath]") {
+	Matrix<double, 4, 4> A;
+	A <<
+		1., 2., 3., 0.,
+		7., 8., 4., 9.,
+		4., 5., 6., -12.,
+		0., 0., 0., 3.;
+
+	Matrix<double, 4, 4> Ainv = A.partialPivLu().inverse();
+
+	Matrix<double, 4, 4> identity (Matrix<double, 4, 4>::Identity());
+
+	Matrix<double, 4, 4> A_dot_Ainv = A * Ainv;
+
+	CHECK_ARRAY_CLOSE (identity.data(), A_dot_Ainv.data(), 16, 1.0e-14);
 }
 
 TEST_CASE ("InverseDynamic", "[SimpleMath]") {
